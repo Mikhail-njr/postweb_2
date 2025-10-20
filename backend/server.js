@@ -178,6 +178,33 @@ function initDatabase() {
             datos_cliente TEXT
         )`);
 
+        // Tabla de órdenes de compra a proveedores
+        db.run(`CREATE TABLE IF NOT EXISTS ordenes_compra (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            numero_orden TEXT UNIQUE NOT NULL,
+            proveedor_id INTEGER NOT NULL,
+            estado TEXT DEFAULT 'pendiente', -- pendiente, enviada, recibida, cancelada
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+            fecha_envio DATETIME,
+            fecha_recepcion DATETIME,
+            notas TEXT,
+            total_esperado REAL DEFAULT 0,
+            FOREIGN KEY (proveedor_id) REFERENCES proveedores(id)
+        )`);
+
+        // Tabla de items de órdenes de compra
+        db.run(`CREATE TABLE IF NOT EXISTS orden_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            orden_id INTEGER NOT NULL,
+            producto_id INTEGER NOT NULL,
+            cantidad_solicitada INTEGER NOT NULL,
+            cantidad_recibida INTEGER DEFAULT 0,
+            precio_unitario REAL NOT NULL,
+            subtotal REAL NOT NULL,
+            FOREIGN KEY (orden_id) REFERENCES ordenes_compra(id),
+            FOREIGN KEY (producto_id) REFERENCES productos(id)
+        )`);
+
         // Agregar columnas faltantes si no existen (para migraciones)
         db.run(`ALTER TABLE venta_items ADD COLUMN precio_original REAL`, (err) => {
             if (err && !err.message.includes('duplicate column')) {
@@ -243,6 +270,15 @@ function initDatabase() {
         });
         db.run(`CREATE INDEX IF NOT EXISTS idx_operaciones_tipo ON operaciones_log(tipo_operacion)`, (err) => {
             if (err) console.log('⚠️ Error creating operaciones tipo index:', err.message);
+        });
+        db.run(`CREATE INDEX IF NOT EXISTS idx_ordenes_proveedor ON ordenes_compra(proveedor_id)`, (err) => {
+            if (err) console.log('⚠️ Error creating ordenes proveedor index:', err.message);
+        });
+        db.run(`CREATE INDEX IF NOT EXISTS idx_ordenes_estado ON ordenes_compra(estado)`, (err) => {
+            if (err) console.log('⚠️ Error creating ordenes estado index:', err.message);
+        });
+        db.run(`CREATE INDEX IF NOT EXISTS idx_orden_items_orden ON orden_items(orden_id)`, (err) => {
+            if (err) console.log('⚠️ Error creating orden items orden index:', err.message);
         });
 
         // Verificar si hay datos
@@ -2385,6 +2421,381 @@ app.delete('/api/sales/:id', async (req, res) => {
     }
 });
 
+
+// >>> RUTAS PARA ÓRDENES DE COMPRA A PROVEEDORES
+
+// Obtener todas las órdenes de compra
+app.get('/api/purchase-orders', async (req, res) => {
+    try {
+        const orders = await dbAll(`
+            SELECT
+                oc.*,
+                p.nombre_proveedor,
+                p.nombre_contacto,
+                p.telefono,
+                p.email,
+                COUNT(oi.id) as items_count,
+                SUM(oi.subtotal) as total_calculado
+            FROM ordenes_compra oc
+            JOIN proveedores p ON oc.proveedor_id = p.id
+            LEFT JOIN orden_items oi ON oc.id = oi.orden_id
+            GROUP BY oc.id, p.nombre_proveedor, p.nombre_contacto, p.telefono, p.email
+            ORDER BY oc.fecha_creacion DESC
+        `);
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Obtener una orden de compra por ID con sus items
+app.get('/api/purchase-orders/:id', async (req, res) => {
+    try {
+        const orderId = req.params.id;
+
+        // Obtener orden
+        const order = await dbAll(`
+            SELECT
+                oc.*,
+                p.nombre_proveedor,
+                p.nombre_contacto,
+                p.telefono,
+                p.email
+            FROM ordenes_compra oc
+            JOIN proveedores p ON oc.proveedor_id = p.id
+            WHERE oc.id = ?
+        `, [orderId]);
+
+        if (order.length === 0) {
+            return res.status(404).json({ error: 'Orden de compra no encontrada' });
+        }
+
+        // Obtener items de la orden
+        const items = await dbAll(`
+            SELECT
+                oi.*,
+                pr.nombre as producto_nombre,
+                pr.codigo as producto_codigo,
+                pr.categoria as producto_categoria
+            FROM orden_items oi
+            JOIN productos pr ON oi.producto_id = pr.id
+            WHERE oi.orden_id = ?
+            ORDER BY oi.id
+        `, [orderId]);
+
+        res.json({
+            ...order[0],
+            items: items
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Crear nueva orden de compra
+app.post('/api/purchase-orders', async (req, res) => {
+    const { proveedor_id, items, notas } = req.body;
+
+    // Validaciones
+    if (!proveedor_id) {
+        return res.status(400).json({ error: 'El ID del proveedor es requerido' });
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'La orden debe incluir al menos un item' });
+    }
+
+    try {
+        // Verificar que el proveedor existe
+        const supplier = await dbAll("SELECT id FROM proveedores WHERE id = ?", [proveedor_id]);
+        if (supplier.length === 0) {
+            return res.status(404).json({ error: 'Proveedor no encontrado' });
+        }
+
+        // Calcular total y validar items
+        let totalEsperado = 0;
+        const processedItems = [];
+
+        for (const item of items) {
+            if (!item.producto_id || !item.cantidad_solicitada || !item.precio_unitario) {
+                return res.status(400).json({ error: 'Cada item debe tener producto_id, cantidad_solicitada y precio_unitario' });
+            }
+
+            const cantidad = parseInt(item.cantidad_solicitada);
+            const precio = parseFloat(item.precio_unitario);
+
+            if (cantidad <= 0 || precio < 0) {
+                return res.status(400).json({ error: 'Cantidad debe ser positiva y precio no negativo' });
+            }
+
+            const subtotal = cantidad * precio;
+            totalEsperado += subtotal;
+
+            processedItems.push({
+                producto_id: item.producto_id,
+                cantidad_solicitada: cantidad,
+                precio_unitario: precio,
+                subtotal: subtotal
+            });
+        }
+
+        // Generar número de orden único
+        const orderNumber = `OC-${Date.now()}`;
+
+        // Iniciar transacción
+        await dbRun("BEGIN TRANSACTION");
+
+        try {
+            // Insertar orden de compra
+            const orderResult = await dbRun(
+                "INSERT INTO ordenes_compra (numero_orden, proveedor_id, notas, total_esperado) VALUES (?, ?, ?, ?)",
+                [orderNumber, proveedor_id, notas || '', totalEsperado]
+            );
+
+            // Insertar items de la orden
+            for (const item of processedItems) {
+                await dbRun(
+                    "INSERT INTO orden_items (orden_id, producto_id, cantidad_solicitada, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)",
+                    [orderResult.id, item.producto_id, item.cantidad_solicitada, item.precio_unitario, item.subtotal]
+                );
+            }
+
+            await dbRun("COMMIT");
+
+            // Registrar la operación en el log
+            logOperation(
+                'ORDEN_COMPRA_CREADA',
+                `Orden de compra creada: ${orderNumber} - Total: ${formatCurrency(totalEsperado)}`,
+                'Sistema',
+                'ordenes_compra',
+                orderResult.id,
+                null,
+                {
+                    numero_orden: orderNumber,
+                    proveedor_id: proveedor_id,
+                    total_esperado: totalEsperado,
+                    items_count: processedItems.length
+                }
+            );
+
+            res.status(201).json({
+                success: true,
+                message: 'Orden de compra creada exitosamente',
+                order_id: orderResult.id,
+                numero_orden: orderNumber
+            });
+
+        } catch (error) {
+            await dbRun("ROLLBACK");
+            throw error;
+        }
+
+    } catch (error) {
+        console.error('Error creando orden de compra:', error);
+        res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
+    }
+});
+
+// Actualizar estado de orden de compra
+app.put('/api/purchase-orders/:id/status', async (req, res) => {
+    const { estado, fecha_envio, fecha_recepcion } = req.body;
+    const orderId = req.params.id;
+
+    const validStates = ['pendiente', 'enviada', 'recibida', 'cancelada'];
+    if (!validStates.includes(estado)) {
+        return res.status(400).json({ error: 'Estado inválido' });
+    }
+
+    try {
+        // Verificar que la orden existe
+        const existingOrder = await dbAll("SELECT * FROM ordenes_compra WHERE id = ?", [orderId]);
+        if (existingOrder.length === 0) {
+            return res.status(404).json({ error: 'Orden de compra no encontrada' });
+        }
+
+        // Construir consulta de actualización
+        const updates = ["estado = ?"];
+        const params = [estado];
+
+        if (estado === 'enviada' && fecha_envio) {
+            updates.push("fecha_envio = ?");
+            params.push(fecha_envio);
+        }
+
+        if (estado === 'recibida' && fecha_recepcion) {
+            updates.push("fecha_recepcion = ?");
+            params.push(fecha_recepcion);
+
+            // Si se marca como recibida, actualizar stock de productos
+            if (estado === 'recibida') {
+                const orderItems = await dbAll("SELECT * FROM orden_items WHERE orden_id = ?", [orderId]);
+                for (const item of orderItems) {
+                    await dbRun(
+                        "UPDATE productos SET stock = stock + ? WHERE id = ?",
+                        [item.cantidad_solicitada, item.producto_id]
+                    );
+                }
+            }
+        }
+
+        params.push(orderId);
+        const query = `UPDATE ordenes_compra SET ${updates.join(", ")} WHERE id = ?`;
+
+        const result = await dbRun(query, params);
+
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Orden de compra no encontrada' });
+        }
+
+        // Registrar la operación en el log
+        logOperation(
+            'ORDEN_COMPRA_ACTUALIZADA',
+            `Estado de orden actualizado: ${existingOrder[0].numero_orden} → ${estado}`,
+            'Sistema',
+            'ordenes_compra',
+            orderId,
+            existingOrder[0],
+            { estado, fecha_envio, fecha_recepcion }
+        );
+
+        res.json({
+            success: true,
+            message: 'Estado de orden actualizado exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error actualizando estado de orden:', error);
+        res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
+    }
+});
+
+// Eliminar orden de compra
+app.delete('/api/purchase-orders/:id', async (req, res) => {
+    try {
+        const orderId = req.params.id;
+
+        // Verificar que la orden existe
+        const existingOrder = await dbAll("SELECT * FROM ordenes_compra WHERE id = ?", [orderId]);
+        if (existingOrder.length === 0) {
+            return res.status(404).json({ error: 'Orden de compra no encontrada' });
+        }
+
+        const order = existingOrder[0];
+
+        // Solo permitir eliminar órdenes pendientes
+        if (order.estado !== 'pendiente') {
+            return res.status(400).json({ error: 'Solo se pueden eliminar órdenes pendientes' });
+        }
+
+        // Iniciar transacción
+        await dbRun("BEGIN TRANSACTION");
+
+        try {
+            // Eliminar items de la orden
+            await dbRun("DELETE FROM orden_items WHERE orden_id = ?", [orderId]);
+
+            // Eliminar orden
+            await dbRun("DELETE FROM ordenes_compra WHERE id = ?", [orderId]);
+
+            await dbRun("COMMIT");
+
+            res.json({
+                success: true,
+                message: 'Orden de compra eliminada exitosamente'
+            });
+
+        } catch (error) {
+            await dbRun("ROLLBACK");
+            throw error;
+        }
+
+    } catch (error) {
+        console.error('Error eliminando orden de compra:', error);
+        res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
+    }
+});
+
+// Agregar item a orden existente
+app.post('/api/purchase-orders/:id/items', async (req, res) => {
+    const { producto_id, cantidad_solicitada, precio_unitario } = req.body;
+    const orderId = req.params.id;
+
+    if (!producto_id || !cantidad_solicitada || precio_unitario === undefined) {
+        return res.status(400).json({ error: 'Producto, cantidad y precio son requeridos' });
+    }
+
+    try {
+        // Verificar que la orden existe y está pendiente
+        const order = await dbAll("SELECT * FROM ordenes_compra WHERE id = ? AND estado = 'pendiente'", [orderId]);
+        if (order.length === 0) {
+            return res.status(404).json({ error: 'Orden no encontrada o no está pendiente' });
+        }
+
+        const cantidad = parseInt(cantidad_solicitada);
+        const precio = parseFloat(precio_unitario);
+        const subtotal = cantidad * precio;
+
+        // Insertar item
+        await dbRun(
+            "INSERT INTO orden_items (orden_id, producto_id, cantidad_solicitada, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)",
+            [orderId, producto_id, cantidad, precio, subtotal]
+        );
+
+        // Actualizar total de la orden
+        await dbRun(
+            "UPDATE ordenes_compra SET total_esperado = total_esperado + ? WHERE id = ?",
+            [subtotal, orderId]
+        );
+
+        res.json({
+            success: true,
+            message: 'Item agregado a la orden exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error agregando item a orden:', error);
+        res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
+    }
+});
+
+// Remover item de orden
+app.delete('/api/purchase-orders/:orderId/items/:itemId', async (req, res) => {
+    const { orderId, itemId } = req.params;
+
+    try {
+        // Verificar que la orden está pendiente
+        const order = await dbAll("SELECT * FROM ordenes_compra WHERE id = ? AND estado = 'pendiente'", [orderId]);
+        if (order.length === 0) {
+            return res.status(404).json({ error: 'Orden no encontrada o no está pendiente' });
+        }
+
+        // Obtener subtotal del item antes de eliminarlo
+        const item = await dbAll("SELECT subtotal FROM orden_items WHERE id = ? AND orden_id = ?", [itemId, orderId]);
+        if (item.length === 0) {
+            return res.status(404).json({ error: 'Item no encontrado en la orden' });
+        }
+
+        const subtotal = item[0].subtotal;
+
+        // Eliminar item
+        await dbRun("DELETE FROM orden_items WHERE id = ? AND orden_id = ?", [itemId, orderId]);
+
+        // Actualizar total de la orden
+        await dbRun(
+            "UPDATE ordenes_compra SET total_esperado = total_esperado - ? WHERE id = ?",
+            [subtotal, orderId]
+        );
+
+        res.json({
+            success: true,
+            message: 'Item removido de la orden exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error removiendo item de orden:', error);
+        res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
+    }
+});
 
 // Ruta para limpiar promociones con productos duplicados
 app.post('/api/clean-duplicate-promotions', authMiddleware, async (req, res) => {

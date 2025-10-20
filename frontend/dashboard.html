@@ -4,363 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Control del Sistema POS</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #585d64;
-            color: #333;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            padding: 30px;
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-        }
-        h2 {
-            color: #34495e;
-            margin-top: 40px;
-            margin-bottom: 15px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-            background: #d8d8d86e;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.9);
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #37a388;
-            font-weight: bold;
-            color: #0c5358;
-            text-transform: uppercase;
-            font-size: 0.9em;
-        }
-        tr:hover {
-            background-color: #f1f1f1;
-        }
-        .loading, .error {
-            text-align: center;
-            padding: 20px;
-            color: #472001;
-        }
-        .error {
-            color: #e74c3c;
-            font-weight: bold;
-        }
-        .product-row {
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .product-row:hover {
-            background-color: #e8f4f8 !important;
-        }
-        .product-row.selected {
-            background-color: #d1ecf1 !important;
-            border-left: 4px solid #17a2b8;
-        }
-        .edit-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .edit-modal.show {
-            display: flex;
-        }
-        .edit-form {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            max-width: 500px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #333;
-        }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #17a2b8;
-        }
-        .button-group {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 30px;
-        }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: background-color 0.3s;
-        }
-        .btn-primary {
-            background: #17a2b8;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #138496;
-        }
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-        .btn-secondary:hover {
-            background: #545b62;
-        }
-        .edit-button {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-        .edit-button:hover {
-            background: #218838;
-        }
-
-
-        /* Invoice Collapse/Expand Styles */
-        .invoice-card.collapsed .invoice-items,
-        .invoice-card.collapsed .invoice-total {
-            display: none;
-        }
-        .invoice-card.collapsed {
-            padding: 15px;
-        }
-        .invoice-card.collapsed .invoice-header {
-            margin-bottom: 0;
-            padding-bottom: 0;
-            border-bottom: none;
-        }
-        .collapse-icon {
-            float: right;
-            cursor: pointer;
-            font-size: 18px;
-            color: #666;
-            transition: transform 0.3s;
-        }
-        .collapse-icon:hover {
-            color: #333;
-        }
-        .invoice-card.collapsed .collapse-icon {
-            transform: rotate(180deg);
-        }
-
-        /* Dashboard Section Collapse/Expand Styles */
-        .dashboard-section.collapsed .section-content {
-            display: none;
-        }
-        .dashboard-section.collapsed {
-            margin: 10px 0 20px 0;
-            background: linear-gradient(135deg, #cbd9e8 0%, #e1e7f25e 100%);
-            border: 1px solid #83aed9;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgb(36, 10, 10);
-            transition: all 0.3s cubic-bezier(.51,.07,.58,1);
-            background-color: rgb(215, 227, 209);
-        }
-        .dashboard-section.collapsed:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 128, 255, 0.3);
-        }
-
-        /* Highlight expanded sections */
-        .dashboard-section:not(.collapsed) {
-            background: linear-gradient(135deg, #9dd9e0 0%, #041ca1 100%);
-            border: 1px solid #870a92ea;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(9, 117, 167, 0.308);
-            padding: 10px;
-            margin: 10px 0;
-        }
-        .section-header {
-            cursor: pointer;
-            position: relative;
-            padding: 15px 20px;
-            margin: 0;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            user-select: none;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-        }
-        .section-title {
-            flex: 1;
-            font-size: 1.2em;
-            font-weight: 600;
-            color: #2c3e50;
-            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-        }
-        .dashboard-section:not(.collapsed) .section-title {
-            color: #2c3e50;
-            text-shadow: none;
-        }
-        .dashboard-section.collapsed .section-header {
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(3px);
-        }
-        .dashboard-section.collapsed .section-header:hover {
-            background: rgba(255, 255, 255, 0.4);
-        }
-        .section-icon {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            font-size: 18px;
-            color: #2c3e50;
-            transition: all 0.3s ease;
-            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-        }
-        .section-icon:hover {
-            color: #17a2b8;
-            transform: translateY(-50%) scale(1.2);
-            text-shadow: 0 0 10px rgba(23, 162, 184, 0.5);
-        }
-        .dashboard-section:not(.collapsed) .section-icon {
-            color: #28a745;
-            text-shadow: none;
-        }
-        .dashboard-section:not(.collapsed) .section-icon:hover {
-            color: #1e7e34;
-            transform: translateY(-50%) scale(1.1);
-        }
-        .dashboard-section.collapsed .section-icon {
-            transform: translateY(-50%) rotate(180deg);
-        }
-        .dashboard-section.collapsed .section-icon:hover {
-            transform: translateY(-50%) rotate(180deg) scale(1.2);
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-            text-align: center;
-        }
-
-        .alert.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        /* Switch Toggle Styles */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 24px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: #17a2b8;
-        }
-
-        input:focus + .slider {
-            box-shadow: 0 0 1px #17a2b8;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-
-        .slider.round {
-            border-radius: 24px;
-        }
-
-        .slider.round:before {
-            border-radius: 50%;
-        }
-
-    </style>
+    <link rel="stylesheet" href="dashboard.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div>
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Cargando Panel de Control...</div>
+        </div>
+    </div>
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -374,11 +29,11 @@
                 <!-- Operaciones del Día -->
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb;">
                     <span style="font-weight: bold; color: #1976d2; font-size: 14px;">🧮 Operaciones:</span>
-                    <input type="number" id="dineroInicial" step="0.01" min="0" placeholder="500,00" style="padding: 8px; border: 2px solid #ddd; border-radius: 6px;">
+                    <input type="number" id="dineroInicialHeader" step="0.01" min="0" placeholder="500,00" style="padding: 8px; border: 2px solid #ddd; border-radius: 6px;">
                     <button id="closeRegisterBtn" class="btn" style="font-size: 14px; padding: 8px 16px; background: #1976d2; color: white;">
                         Cierre de Caja
                     </button>
-                    <button id="returnToPOSBtn" class="btn" style="font-size: 14px; padding: 8px 16px; background: #1976d2; color: white;" onclick="returnToPOS()">
+                    <button id="returnToPOSBtn" class="btn" style="font-size: 14px; padding: 8px 16px; background: #1976d2; color: white;">
                         🏪 Ir a Caja
                     </button>
                 </div>
@@ -393,7 +48,7 @@
                         <option value="report">📧 Generar Reporte</option>
                         <option value="reset">🔄 Resetear Datos</option>
                     </select>
-                    <button id="executeDataActionBtn" class="btn" style="font-size: 14px; padding: 8px 16px; background: #ff9800; color: white;" onclick="executeDataAction()" disabled>
+                    <button id="executeDataActionBtn" class="btn" style="font-size: 14px; padding: 8px 16px; background: #ff9800; color: white;" disabled>
                         Ejecutar
                     </button>
                     <input type="file" id="backupFileInput" accept=".json" style="display: none;" onchange="restoreBackup(this)">
@@ -409,7 +64,7 @@
                         <option value="license">⭐ Estado de Licencia</option>
                         <option value="settings">⚙️ Configuraciones</option>
                     </select>
-                    <button id="executeSystemActionBtn" class="btn" style="font-size: 14px; padding: 8px 16px; background: #4caf50; color: white;" onclick="executeSystemAction()" disabled>
+                    <button id="executeSystemActionBtn" class="btn" style="font-size: 14px; padding: 8px 16px; background: #4caf50; color: white;" disabled>
                         Ejecutar
                     </button>
                 </div>
@@ -423,8 +78,8 @@
 
                 <!-- Sección de entrada (solo dinero inicial) -->
                 <div id="cierre-input-section" style="margin-bottom: 20px;">
-                    <label for="dineroInicial" style="display: block; margin-bottom: 5px; font-weight: 500;">Dinero Inicial del Día:</label>
-                    <input type="number" id="dineroInicial" step="0.01" min="0" placeholder="500.00" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    <label for="dineroInicialModal" style="display: block; margin-bottom: 5px; font-weight: 500;">Dinero Inicial del Día:</label>
+                    <input type="number" id="dineroInicialModal" step="0.01" min="0" placeholder="500.00" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
                 </div>
 
                 <!-- Sección de resultados (oculta inicialmente) -->
@@ -448,8 +103,8 @@
                 </div>
 
                 <div class="button-group" style="margin-top: 20px;">
-                    <button type="button" class="btn btn-primary" onclick="calculateCloseRegister()">Calcular Cierre</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeCierreModal()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="calculateCloseRegisterBtn">Calcular Cierre</button>
+                    <button type="button" class="btn btn-secondary" id="closeCierreModalBtn">Cancelar</button>
                 </div>
             </div>
         </div>
@@ -502,10 +157,10 @@
             </h2>
             <div class="section-content">
                 <div style="margin-bottom: 20px;">
-                    <button class="btn btn-primary" onclick="openCreatePromotionModal()" style="font-size: 14px; padding: 10px 20px;">
+                    <button class="btn btn-primary" id="openCreatePromotionModalBtn" style="font-size: 14px; padding: 10px 20px;">
                         ➕ Crear Promoción
                     </button>
-                    <button class="btn btn-secondary" onclick="cleanDuplicatePromotions()" style="font-size: 14px; padding: 10px 20px; background: #ff6b6b; color: white; margin-left: 10px;" title="Limpia productos que están en múltiples promociones">
+                    <button class="btn btn-secondary" id="cleanDuplicatePromotionsBtn" style="font-size: 14px; padding: 10px 20px; background: #ff6b6b; color: white; margin-left: 10px;" title="Limpia productos que están en múltiples promociones">
                         🧹 Limpiar Duplicados
                     </button>
                 </div>
@@ -550,16 +205,19 @@
             </h2>
             <div class="section-content">
                 <div style="margin-bottom: 20px;">
-                    <button class="btn btn-primary" onclick="openAddProductModal()" style="font-size: 14px; padding: 10px 20px;">
+                    <button class="btn btn-primary" id="openAddProductModalBtn" style="font-size: 14px; padding: 10px 20px;">
                         ➕ Agregar Nuevo Producto
                     </button>
                     <button id="editSelectedBtn" class="btn btn-secondary" disabled style="font-size: 14px; padding: 10px 20px; margin-left: 10px;">
                         ✏️ Editar Producto
                     </button>
+                    <button class="btn btn-secondary" id="openQuickOrderModalBtn" style="font-size: 14px; padding: 10px 20px; margin-left: 10px; background: #17a2b8; color: white;">
+                        📋 Crear Orden Rápida
+                    </button>
                 </div>
                 <div style="margin-bottom: 20px;">
-                    <button class="btn btn-secondary" onclick="alert('Usa Ctrl+F para buscar en la página')">🔍 Buscar</button>
-                    <button id="sortBtn" class="btn btn-secondary" onclick="toggleSortMode()" style="margin-left: 10px;">📊 Stock ↓</button>
+                    <button class="btn btn-secondary" id="searchBtn">🔍 Buscar</button>
+                    <button id="sortBtn" class="btn btn-secondary" style="margin-left: 10px;">📊 Stock ↓</button>
                 </div>
                 <div class="loading">Cargando productos...</div>
                 <table id="productos-table" style="display:none;">
@@ -613,7 +271,7 @@
             </h2>
             <div class="section-content">
                 <div style="margin-bottom: 20px;">
-                    <button class="btn btn-primary" onclick="openAddSupplierModal()" style="font-size: 14px; padding: 10px 20px;">
+                    <button class="btn btn-primary" id="openAddSupplierModalBtn" style="font-size: 14px; padding: 10px 20px;">
                         ➕ Agregar Proveedor
                     </button>
                 </div>
@@ -621,6 +279,7 @@
                 <table id="proveedores-table" style="display:none;">
                     <thead>
                         <tr>
+                            <th>Seleccionar</th>
                             <th>ID</th>
                             <th>Nombre del Proveedor</th>
                             <th>Nombre de Contacto</th>
@@ -629,6 +288,58 @@
                             <th>Productos/Servicios</th>
                             <th>Cond. de Pago</th>
                             <th>Estatus</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <!-- Lista de productos por proveedor -->
+                <div id="supplier-products-container" style="margin-top: 30px; display: none;">
+                    <h3 style="color: #2c3e50; margin-bottom: 15px;">📦 Lista de Productos para Pedir</h3>
+                    <div style="margin-bottom: 15px;">
+                        <button class="btn btn-primary" id="openAddProductsToSupplierModalBtn" style="font-size: 14px; padding: 8px 16px;">
+                            ➕ Agregar Productos a Pedir
+                        </button>
+                        <button class="btn btn-secondary" id="clearSupplierProductListBtn" style="font-size: 14px; padding: 8px 16px; margin-left: 10px; background: #dc3545; color: white;">
+                            🗑️ Limpiar Lista
+                        </button>
+                    </div>
+                    <div id="supplier-products-list" style="display: none;">
+                        <!-- Los productos se mostrarán aquí -->
+                    </div>
+                    <div id="no-supplier-products" style="text-align: center; color: #666; padding: 20px;">
+                        No hay productos en la lista de compras para este proveedor.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Órdenes de Compra -->
+        <div id="ordenes-compra-section" class="dashboard-section collapsed">
+            <h2 class="section-header">
+                <span class="section-title">📋 Órdenes de Compra</span>
+                <span class="section-icon">▶</span>
+            </h2>
+            <div class="section-content">
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" id="openCreatePurchaseOrderModalBtn" style="font-size: 14px; padding: 10px 20px;">
+                        ➕ Crear Orden de Compra
+                    </button>
+                    <button class="btn btn-secondary" id="loadPurchaseOrdersBtn" style="font-size: 14px; padding: 10px 20px; margin-left: 10px;">
+                        🔄 Actualizar
+                    </button>
+                </div>
+                <div class="loading">Cargando órdenes de compra...</div>
+                <table id="ordenes-compra-table" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>N° Orden</th>
+                            <th>Proveedor</th>
+                            <th>Estado</th>
+                            <th>Fecha Creación</th>
+                            <th>Items</th>
+                            <th>Total Esperado</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -645,10 +356,10 @@
             </h2>
             <div class="section-content">
                 <div style="margin-bottom: 20px;">
-                    <button class="btn btn-secondary" onclick="loadOperationsLog()" style="font-size: 14px; padding: 10px 20px;">
+                    <button class="btn btn-secondary" id="loadOperationsLogBtn" style="font-size: 14px; padding: 10px 20px;">
                         🔄 Actualizar
                     </button>
-                    <button class="btn btn-secondary" onclick="clearOperationsLog()" style="font-size: 14px; padding: 10px 20px; background: #dc3545; color: white;">
+                    <button class="btn btn-secondary" id="clearOperationsLogBtn" style="font-size: 14px; padding: 10px 20px; background: #dc3545; color: white;">
                         🗑️ Limpiar Registro
                     </button>
                 </div>
@@ -731,7 +442,7 @@
                     </div>
 
                     <div class="button-group">
-                        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" id="closeEditModalBtn">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                     </div>
                 </form>
@@ -789,7 +500,7 @@
                     </div>
 
                     <div class="button-group">
-                        <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" id="closeAddModalBtn">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Crear Producto</button>
                     </div>
                 </form>
@@ -846,7 +557,7 @@
                     </div>
 
                     <div class="button-group">
-                        <button type="button" class="btn btn-secondary" onclick="closeAddSupplierModal()">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" id="closeAddSupplierModalBtn">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Crear Proveedor</button>
                     </div>
                 </form>
@@ -905,10 +616,59 @@
                     </div>
 
                     <div class="button-group">
-                        <button type="button" class="btn btn-secondary" onclick="closeEditSupplierModal()">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" id="closeEditSupplierModalBtn">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Modal de crear orden de compra para proveedor específico -->
+        <div id="createSupplierOrderModal" class="edit-modal">
+            <div class="edit-form" style="max-width: 900px; width: 95%;">
+                <h3 style="margin-bottom: 20px; color: #2c3e50;">📋 Crear Orden de Compra</h3>
+                <div id="supplierOrderHeader" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                    <!-- Información del proveedor se mostrará aquí -->
+                </div>
+                <form id="createSupplierOrderForm">
+
+                    <div class="form-group">
+                        <label for="supplierOrderProductSearch">Buscar Productos:</label>
+                        <input type="text" id="supplierOrderProductSearch" placeholder="Escribe para buscar productos..." onkeyup="searchSupplierOrderProducts()">
+                        <div id="supplierOrderProductSearchResults" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; margin-top: 5px; display: none;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Productos Seleccionados:</label>
+                        <div id="selectedSupplierOrderProducts" style="min-height: 100px; border: 1px solid #ddd; border-radius: 6px; padding: 10px; background: white;">
+                            <p style="color: #666; margin: 0;">No hay productos seleccionados</p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="supplierOrderNotes">Notas (opcional):</label>
+                        <textarea id="supplierOrderNotes" placeholder="Notas adicionales para la orden" rows="3"></textarea>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn btn-secondary" id="closeCreateSupplierOrderModalBtn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Crear Orden de Compra</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de detalles de orden de compra -->
+        <div id="purchaseOrderDetailsModal" class="edit-modal">
+            <div class="edit-form" style="max-width: 1000px; width: 95%;">
+                <h3 style="margin-bottom: 20px; color: #2c3e50;">📋 Detalles de Orden de Compra</h3>
+                <div id="orderDetailsContent">
+                    <!-- Los detalles se cargarán aquí -->
+                </div>
+                <div class="button-group" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="closePurchaseOrderDetailsModalBtn">Cerrar</button>
+                    <button type="button" class="btn btn-primary" id="updateOrderStatusBtn" style="display: none;">Actualizar Estado</button>
+                </div>
             </div>
         </div>
 
@@ -937,7 +697,7 @@
                     </div>
 
                     <div class="button-group">
-                        <button type="button" class="btn btn-secondary" onclick="closeCreatePromotionModal()">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" id="closeCreatePromotionModalBtn">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Finalizar Promoción</button>
                     </div>
                 </form>
@@ -973,13 +733,13 @@
                 </div>
 
                 <div style="margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-                    <button type="button" onclick="selectAllSections()" style="background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 10px;">Seleccionar Todo</button>
-                    <button type="button" onclick="deselectAllSections()" style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Deseleccionar Todo</button>
+                    <button type="button" id="selectAllSectionsBtn" style="background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 10px;">Seleccionar Todo</button>
+                    <button type="button" id="deselectAllSectionsBtn" style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Deseleccionar Todo</button>
                 </div>
 
                 <div class="button-group">
-                    <button type="button" class="btn btn-secondary" onclick="closeReportOptionsModal()">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="generateSelectedReport()">Generar Reporte</button>
+                    <button type="button" class="btn btn-secondary" id="closeReportOptionsModalBtn">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="generateSelectedReportBtn">Generar Reporte</button>
                 </div>
             </div>
         </div>
@@ -1009,8 +769,68 @@
                     </p>
                 </div>
                 <div class="button-group">
-                    <button type="button" class="btn btn-secondary" onclick="closeSupportModal()">Cerrar</button>
-                    <button type="button" class="btn btn-primary" onclick="contactSupport()">Contactar</button>
+                    <button type="button" class="btn btn-secondary" id="closeSupportModalBtn">Cerrar</button>
+                    <button type="button" class="btn btn-primary" id="contactSupportBtn">Contactar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de orden rápida desde productos -->
+        <div id="quickOrderModal" class="edit-modal">
+            <div class="edit-form" style="max-width: 800px; width: 95%;">
+                <h3 style="margin-bottom: 20px; color: #2c3e50;">📋 Crear Orden Rápida</h3>
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">Selecciona productos del inventario para crear una orden de compra rápida</p>
+
+                <div class="form-group">
+                    <label for="quickOrderSupplier">Proveedor:</label>
+                    <select id="quickOrderSupplier" required>
+                        <option value="">Seleccionar proveedor...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Productos Seleccionados:</label>
+                    <div id="quickOrderProducts" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 10px; background: #f8f9fa;">
+                        <p style="color: #666; margin: 0;">No hay productos seleccionados. Usa los checkboxes en la tabla de productos.</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="quickOrderNotes">Notas (opcional):</label>
+                    <textarea id="quickOrderNotes" placeholder="Notas adicionales para la orden" rows="3"></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" id="closeQuickOrderModalBtn">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="createQuickOrderBtn">Crear Orden</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para agregar productos a lista de proveedor -->
+        <div id="addProductsToSupplierModal" class="edit-modal">
+            <div class="edit-form" style="max-width: 900px; width: 95%;">
+                <h3 style="margin-bottom: 20px; color: #2c3e50;">📦 Agregar Productos a Lista de Compras</h3>
+                <div id="supplierInfoHeader" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                    <!-- Información del proveedor se mostrará aquí -->
+                </div>
+
+                <div class="form-group">
+                    <label for="supplierProductSearch">Buscar Productos:</label>
+                    <input type="text" id="supplierProductSearch" placeholder="Escribe para buscar productos..." onkeyup="searchSupplierProducts()">
+                    <div id="supplierProductSearchResults" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; margin-top: 5px; display: none;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Productos en Lista:</label>
+                    <div id="supplierSelectedProducts" style="min-height: 100px; border: 1px solid #ddd; border-radius: 6px; padding: 10px; background: white;">
+                        <p style="color: #666; margin: 0;">No hay productos en la lista</p>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" id="closeAddProductsToSupplierModalBtn">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveSupplierProductListBtn">Guardar Lista</button>
                 </div>
             </div>
         </div>
@@ -1058,13 +878,13 @@
                 </div>
 
                 <div style="margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-                    <button type="button" onclick="selectAllResetSections()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 10px;">Seleccionar Todo</button>
-                    <button type="button" onclick="deselectAllResetSections()" style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Deseleccionar Todo</button>
+                    <button type="button" id="selectAllResetSectionsBtn" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 10px;">Seleccionar Todo</button>
+                    <button type="button" id="deselectAllResetSectionsBtn" style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Deseleccionar Todo</button>
                 </div>
 
                 <div class="button-group">
-                    <button type="button" class="btn btn-secondary" onclick="closeResetOptionsModal()">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="performSelectiveReset()" style="background: #dc3545;">🗑️ Resetear Datos</button>
+                    <button type="button" class="btn btn-secondary" id="closeResetOptionsModalBtn">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="performSelectiveResetBtn" style="background: #dc3545;">🗑️ Resetear Datos</button>
                 </div>
             </div>
         </div>
@@ -1077,7 +897,12 @@
     </footer>
 
     <script src="script.js"></script>
-    <script>
+    <script src="dashboard.js"></script>
+        // Mostrar loading inmediatamente al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            showLoadingOverlay();
+        });
+
         // API_BASE ya está declarado en script.js
         // isLoggedIn y authCredentials también están en script.js
 
@@ -1088,16 +913,13 @@
         function formatPaymentMethod(metodoPago, saleData) {
             if (Array.isArray(metodoPago) && metodoPago.length > 0) {
                 if (metodoPago[0].metodo) {
-                    // Pagos detallados con método y monto
                     const paymentDetails = metodoPago.map(p => `${p.metodo.toUpperCase()}: ${formatCurrency(p.monto)}`).join(', ');
                     const changeText = saleData && saleData.vuelto > 0 ? ` (Vuelto: ${formatCurrency(saleData.vuelto)})` : '';
                     return paymentDetails + changeText;
                 } else {
-                    // Solo métodos sin montos
                     return metodoPago.join('/');
                 }
             } else if (typeof metodoPago === 'string') {
-                // Método simple
                 const changeText = saleData && saleData.vuelto > 0 ? ` (Vuelto: ${formatCurrency(saleData.vuelto)})` : '';
                 return metodoPago.toUpperCase() + changeText;
             }
@@ -1112,8 +934,11 @@
             setTimeout(() => alert.remove(), 2000);
         }
 
-        let globalProductosData = []; // Variable global para almacenar datos de productos
-        let currentSortMode = 1; // 0: Stock asc, 1: Stock desc, 2: ID asc
+        let globalProductosData = [];
+        let globalSuppliersData = [];
+        let currentSortMode = 1;
+        let quickOrderProducts = [];
+        let currentSupplierId = null;
 
         async function fetchAndDisplayData() {
             const headers = { 'Content-Type': 'application/json' };
@@ -1121,7 +946,6 @@
                 headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
             }
 
-            // Fetch de productos
             try {
                 const productosRes = await fetch(`${API_BASE}/products`, { headers });
                 if (productosRes.status === 401) {
@@ -1131,7 +955,7 @@
                 }
                 if (!productosRes.ok) throw new Error('Network response for products was not ok');
                 const productos = await productosRes.json();
-                globalProductosData = productos; // Almacenar datos globalmente
+                globalProductosData = productos;
                 displayTableData('productos', productos);
             } catch (error) {
                 console.error('Error fetching products:', error);
@@ -1141,10 +965,23 @@
                 }
             }
 
-            // Fetch de ventas (por defecto muestra ventas de hoy)
+            try {
+                const proveedoresRes = await fetch(`${API_BASE}/suppliers`, { headers });
+                if (proveedoresRes.status === 401) {
+                    isLoggedIn = false;
+                    updateUIBasedOnAuth();
+                    throw new Error('Autenticación requerida');
+                }
+                if (!proveedoresRes.ok) throw new Error('Network response for suppliers was not ok');
+                const proveedores = await proveedoresRes.json();
+                globalSuppliersData = proveedores;
+                displayTableData('proveedores', proveedores);
+            } catch (error) {
+                console.error('Error fetching suppliers:', error);
+            }
+
             try {
                 console.log('Fetching sales data...');
-                // Por defecto, cargar ventas de hoy
                 const today = new Date().toISOString().split('T')[0];
                 const ventasRes = await fetch(`${API_BASE}/sales?date=${today}`, { headers });
                 console.log('Sales response status:', ventasRes.status);
@@ -1165,8 +1002,6 @@
                 }
             }
 
-
-            // Fetch de promociones
             try {
                 await loadPromotions();
             } catch (error) {
@@ -1177,7 +1012,6 @@
                 }
             }
 
-            // Fetch de registro de operaciones
             try {
                 await loadOperationsLog();
             } catch (error) {
@@ -1196,6 +1030,10 @@
                 container = document.querySelector('#productos-section');
                 table = document.querySelector('#productos-table');
                 loading = document.querySelector('#productos-section .loading');
+            } else if (dataType === 'proveedores') {
+                container = document.querySelector('#proveedores-section');
+                table = document.querySelector('#proveedores-table');
+                loading = document.querySelector('#proveedores-section .loading');
             }
 
             if (!container || !table) {
@@ -1227,10 +1065,35 @@
                             <td>${item.categoria || ''}</td>
                             <td>${formatCurrency(item.precio)}</td>
                             <td>${item.stock}</td>
-                            <td><button class="edit-button" onclick="editProduct(${item.id})">Editar</button></td>
+                            <td>
+                                <button class="edit-button" onclick="editProduct(${item.id})">Editar</button>
+                                <select onchange="addProductToSupplierOrder(${item.id}, this.value)" style="margin-left: 5px; padding: 2px 4px; font-size: 12px;">
+                                    <option value="">Agregar a...</option>
+                                    <option value="quick-order">Orden Rápida</option>
+                                    ${globalSuppliersData.map(supplier => `<option value="supplier-${supplier.id}">Lista ${supplier.nombre_proveedor}</option>`).join('')}
+                                </select>
+                            </td>
                         `;
                         row.className = 'product-row';
                         row.setAttribute('data-product-id', item.id);
+                    } else if (dataType === 'proveedores') {
+                        rowContent = `
+                            <td><input type="checkbox" class="supplier-checkbox" data-supplier-id="${item.id}"></td>
+                            <td>${item.id}</td>
+                            <td>${item.nombre_proveedor}</td>
+                            <td>${item.nombre_contacto || ''}</td>
+                            <td>${item.telefono || ''}</td>
+                            <td>${item.email || ''}</td>
+                            <td>${item.productos_servicios || ''}</td>
+                            <td>${item.condiciones_pago || ''}</td>
+                            <td>${item.estatus || 'Activo'}</td>
+                            <td>
+                                <button class="edit-button" onclick="editSupplier(${item.id})">Editar</button>
+                                <button class="edit-button" onclick="showSupplierProducts(${item.id})" style="background: #17a2b8; margin-left: 5px;">Ver Lista</button>
+                            </td>
+                        `;
+                        row.className = 'supplier-row';
+                        row.setAttribute('data-supplier-id', item.id);
                     }
 
                     row.innerHTML = rowContent;
@@ -1241,7 +1104,7 @@
             } else {
                 table.style.display = 'none';
                 if (loading) {
-                    loading.textContent = 'No hay productos registrados.';
+                    loading.textContent = dataType === 'productos' ? 'No hay productos registrados.' : 'No hay proveedores registrados.';
                     loading.style.display = 'block';
                 }
 
@@ -1703,9 +1566,33 @@
             }
         });
 
+        // Event listeners para modal de crear orden de compra
+        document.getElementById('createPurchaseOrderModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCreatePurchaseOrderModal();
+            }
+        });
+
+        document.getElementById('createPurchaseOrderForm').addEventListener('submit', createPurchaseOrder);
+
+        // Event listeners para modal de detalles de orden
+        document.getElementById('purchaseOrderDetailsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePurchaseOrderDetailsModal();
+            }
+        });
+
+        // Event listeners para modal de orden rápida
+        document.getElementById('quickOrderModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeQuickOrderModal();
+            }
+        });
+
         // Variables para promociones
         let selectedPromotionProducts = [];
         let allProducts = [];
+
 
         // Función para cargar promociones
         async function loadPromotions() {
@@ -1897,6 +1784,466 @@
         function removeProductFromPromotion(productId) {
             selectedPromotionProducts = selectedPromotionProducts.filter(p => p.id !== productId);
             updateSelectedProductsDisplay();
+        }
+
+        // Variables para órdenes de compra
+        let selectedOrderProducts = [];
+        let allSuppliers = [];
+        let currentOrderDetails = null;
+        let selectedSupplierOrderProducts = [];
+        let allProductsForSupplier = [];
+
+        // Función para abrir modal de crear orden de compra
+        function openCreatePurchaseOrderModal() {
+            selectedOrderProducts = [];
+            document.getElementById('orderSupplier').value = '';
+            document.getElementById('orderNotes').value = '';
+            document.getElementById('supplierProducts').innerHTML = '<p style="color: #666; margin: 0;">Seleccione un proveedor para ver sus productos</p>';
+            updateSelectedOrderProductsDisplay();
+            loadSuppliersForOrder();
+            document.getElementById('createPurchaseOrderModal').classList.add('show');
+        }
+
+        // Función para cerrar modal de crear orden de compra
+        function closeCreatePurchaseOrderModal() {
+            document.getElementById('createPurchaseOrderModal').classList.remove('show');
+            selectedOrderProducts = [];
+        }
+
+        // Función para cargar proveedores para orden
+        async function loadSuppliersForOrder() {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/suppliers`, { headers });
+                if (!response.ok) throw new Error('Error al cargar proveedores');
+
+                allSuppliers = await response.json();
+                const supplierSelect = document.getElementById('orderSupplier');
+                supplierSelect.innerHTML = '<option value="">Seleccionar proveedor...</option>';
+
+                allSuppliers.forEach(supplier => {
+                    const option = document.createElement('option');
+                    option.value = supplier.id;
+                    option.textContent = supplier.nombre_proveedor;
+                    supplierSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading suppliers for order:', error);
+                alert('Error al cargar proveedores');
+            }
+        }
+
+        // Función para cargar productos del proveedor seleccionado
+        async function loadSupplierProducts() {
+            const supplierId = document.getElementById('orderSupplier').value;
+            const productsDiv = document.getElementById('supplierProducts');
+
+            if (!supplierId) {
+                productsDiv.innerHTML = '<p style="color: #666; margin: 0;">Seleccione un proveedor para ver sus productos</p>';
+                return;
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/products`, { headers });
+                if (!response.ok) throw new Error('Error al cargar productos');
+
+                const products = await response.json();
+
+                if (products.length === 0) {
+                    productsDiv.innerHTML = '<p style="color: #666; margin: 0;">No hay productos disponibles</p>';
+                    return;
+                }
+
+                productsDiv.innerHTML = products.map(product => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px; background: white;">
+                        <div style="flex: 1;">
+                            <strong>${product.nombre}</strong><br>
+                            <small style="color: #666;">Código: ${product.codigo} | Stock: ${product.stock} | Precio: $${product.precio}</small>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="number" min="1" placeholder="Cant" style="width: 60px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;"
+                                   onchange="updateProductQuantity(${product.id}, this.value)">
+                            <button type="button" onclick="addProductToOrder(${product.id})"
+                                    style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">➕ Agregar</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading supplier products:', error);
+                productsDiv.innerHTML = '<p style="color: #f00; margin: 0;">Error al cargar productos</p>';
+            }
+        }
+
+        // Función para actualizar cantidad de producto
+        function updateProductQuantity(productId, quantity) {
+            const product = selectedOrderProducts.find(p => p.id === productId);
+            if (product) {
+                product.cantidad_solicitada = parseInt(quantity) || 0;
+                updateSelectedOrderProductsDisplay();
+            }
+        }
+
+        // Función para agregar producto a la orden
+        function addProductToOrder(productId) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            // Obtener producto de la lista global
+            fetch(`${API_BASE}/products/${productId}`, { headers })
+                .then(response => response.json())
+                .then(product => {
+                    // Verificar si ya está seleccionado
+                    if (selectedOrderProducts.find(p => p.id === productId)) {
+                        alert('Este producto ya está en la orden');
+                        return;
+                    }
+
+                    selectedOrderProducts.push({
+                        id: product.id,
+                        nombre: product.nombre,
+                        precio: product.precio,
+                        cantidad_solicitada: 1
+                    });
+
+                    updateSelectedOrderProductsDisplay();
+                })
+                .catch(error => {
+                    console.error('Error adding product to order:', error);
+                    alert('Error al agregar producto');
+                });
+        }
+
+        // Función para actualizar la visualización de productos seleccionados en orden
+        function updateSelectedOrderProductsDisplay() {
+            const container = document.getElementById('selectedOrderProducts');
+
+            if (selectedOrderProducts.length === 0) {
+                container.innerHTML = '<p style="color: #666; margin: 0;">No hay productos seleccionados</p>';
+                return;
+            }
+
+            container.innerHTML = selectedOrderProducts.map(product => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px; background: white;">
+                    <div>
+                        <strong>${product.nombre}</strong><br>
+                        <small style="color: #666;">Precio: $${product.precio} | Cantidad: ${product.cantidad_solicitada} | Subtotal: $${(product.precio * product.cantidad_solicitada).toFixed(2)}</small>
+                    </div>
+                    <button type="button" onclick="removeProductFromOrder(${product.id})"
+                            style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">×</button>
+                </div>
+            `).join('');
+        }
+
+        // Función para remover producto de la orden
+        function removeProductFromOrder(productId) {
+            selectedOrderProducts = selectedOrderProducts.filter(p => p.id !== productId);
+            updateSelectedOrderProductsDisplay();
+        }
+
+        // Función para crear orden de compra
+        async function createPurchaseOrder(event) {
+            event.preventDefault();
+
+            const supplierId = document.getElementById('orderSupplier').value;
+            const notes = document.getElementById('orderNotes').value.trim();
+
+            if (!supplierId) {
+                alert('Debe seleccionar un proveedor');
+                return;
+            }
+
+            if (selectedOrderProducts.length === 0) {
+                alert('Debe agregar al menos un producto');
+                return;
+            }
+
+            // Verificar que todos los productos tienen cantidad válida
+            const invalidProducts = selectedOrderProducts.filter(p => !p.cantidad_solicitada || p.cantidad_solicitada <= 0);
+            if (invalidProducts.length > 0) {
+                alert('Todos los productos deben tener una cantidad válida');
+                return;
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            const orderData = {
+                proveedor_id: supplierId,
+                items: selectedOrderProducts.map(p => ({
+                    producto_id: p.id,
+                    cantidad_solicitada: p.cantidad_solicitada,
+                    precio_unitario: p.precio
+                })),
+                notas: notes
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/purchase-orders`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(orderData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al crear orden');
+                }
+
+                const result = await response.json();
+                alert('Orden de compra creada exitosamente');
+                closeCreatePurchaseOrderModal();
+                loadPurchaseOrders(); // Recargar la lista
+
+            } catch (error) {
+                console.error('Error creating purchase order:', error);
+                alert('Error al crear orden de compra: ' + error.message);
+            }
+        }
+
+        // Función para cargar órdenes de compra
+        async function loadPurchaseOrders() {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/purchase-orders`, { headers });
+                if (!response.ok) throw new Error('Error al cargar órdenes');
+
+                const orders = await response.json();
+                displayPurchaseOrders(orders);
+            } catch (error) {
+                console.error('Error loading purchase orders:', error);
+                const section = document.querySelector('#ordenes-compra-section');
+                if (section) {
+                    section.innerHTML = '<div class="error">Error al cargar órdenes de compra. Asegúrate de que el servidor esté activo.</div>';
+                }
+            }
+        }
+
+        // Función para mostrar órdenes de compra
+        function displayPurchaseOrders(orders) {
+            const container = document.querySelector('#ordenes-compra-section');
+            const table = document.querySelector('#ordenes-compra-table');
+            const loading = container ? container.querySelector('.loading') : null;
+
+            if (orders && orders.length > 0) {
+                table.style.display = 'table';
+                if (loading) loading.style.display = 'none';
+
+                const tbody = table.querySelector('tbody');
+                tbody.innerHTML = orders.map(order => {
+                    const estadoColor = {
+                        'pendiente': '#ffc107',
+                        'enviada': '#17a2b8',
+                        'recibida': '#28a745',
+                        'cancelada': '#dc3545'
+                    };
+
+                    const fechaCreacion = new Date(order.fecha_creacion).toLocaleDateString('es-AR');
+
+                    return `
+                        <tr>
+                            <td>${order.numero_orden}</td>
+                            <td>${order.nombre_proveedor}</td>
+                            <td><span style="background: ${estadoColor[order.estado] || '#6c757d'}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px;">${order.estado.toUpperCase()}</span></td>
+                            <td>${fechaCreacion}</td>
+                            <td>${order.items_count || 0}</td>
+                            <td>${formatCurrency(order.total_calculado || order.total_esperado || 0)}</td>
+                            <td>
+                                <button class="edit-button" onclick="viewPurchaseOrderDetails(${order.id})">Ver</button>
+                                ${order.estado === 'pendiente' ? `<button class="edit-button" onclick="deletePurchaseOrder(${order.id}, '${order.numero_orden}')" style="background: #dc3545; color: white; margin-left: 5px;">Eliminar</button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                table.style.display = 'none';
+                if (loading) {
+                    loading.textContent = 'No hay órdenes de compra registradas.';
+                    loading.style.display = 'block';
+                }
+            }
+        }
+
+        // Función para ver detalles de orden de compra
+        async function viewPurchaseOrderDetails(orderId) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/purchase-orders/${orderId}`, { headers });
+                if (!response.ok) throw new Error('Error al cargar detalles');
+
+                const order = await response.json();
+                currentOrderDetails = order;
+
+                const content = document.getElementById('orderDetailsContent');
+                const updateBtn = document.getElementById('updateOrderStatusBtn');
+
+                const estadoColor = {
+                    'pendiente': '#ffc107',
+                    'enviada': '#17a2b8',
+                    'recibida': '#28a745',
+                    'cancelada': '#dc3545'
+                };
+
+                content.innerHTML = `
+                    <div style="margin-bottom: 20px;">
+                        <h4>Información General</h4>
+                        <p><strong>N° Orden:</strong> ${order.numero_orden}</p>
+                        <p><strong>Proveedor:</strong> ${order.nombre_proveedor}</p>
+                        <p><strong>Estado:</strong> <span style="background: ${estadoColor[order.estado] || '#6c757d'}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px;">${order.estado.toUpperCase()}</span></p>
+                        <p><strong>Fecha Creación:</strong> ${new Date(order.fecha_creacion).toLocaleString('es-AR')}</p>
+                        ${order.fecha_envio ? `<p><strong>Fecha Envío:</strong> ${new Date(order.fecha_envio).toLocaleString('es-AR')}</p>` : ''}
+                        ${order.fecha_recepcion ? `<p><strong>Fecha Recepción:</strong> ${new Date(order.fecha_recepcion).toLocaleString('es-AR')}</p>` : ''}
+                        ${order.notas ? `<p><strong>Notas:</strong> ${order.notas}</p>` : ''}
+                    </div>
+
+                    <div>
+                        <h4>Productos Solicitados</h4>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <thead>
+                                <tr style="background: #f8f9fa;">
+                                    <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Producto</th>
+                                    <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Cantidad Solicitada</th>
+                                    <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Precio Unitario</th>
+                                    <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${order.items.map(item => `
+                                    <tr>
+                                        <td style="padding: 8px; border: 1px solid #ddd;">${item.producto_nombre} (${item.producto_codigo})</td>
+                                        <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${item.cantidad_solicitada}</td>
+                                        <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${formatCurrency(item.precio_unitario)}</td>
+                                        <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${formatCurrency(item.subtotal)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #f8f9fa; font-weight: bold;">
+                                    <td colspan="3" style="padding: 8px; text-align: right; border: 1px solid #ddd;">Total Esperado:</td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${formatCurrency(order.total_esperado || 0)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+
+                // Mostrar/ocultar botón de actualizar estado
+                if (order.estado === 'pendiente' || order.estado === 'enviada') {
+                    updateBtn.style.display = 'inline-block';
+                } else {
+                    updateBtn.style.display = 'none';
+                }
+
+                document.getElementById('purchaseOrderDetailsModal').classList.add('show');
+
+            } catch (error) {
+                console.error('Error loading order details:', error);
+                alert('Error al cargar detalles de la orden');
+            }
+        }
+
+        // Función para cerrar modal de detalles
+        function closePurchaseOrderDetailsModal() {
+            document.getElementById('purchaseOrderDetailsModal').classList.remove('show');
+            currentOrderDetails = null;
+        }
+
+        // Función para actualizar estado de orden
+        async function updateOrderStatus() {
+            if (!currentOrderDetails) return;
+
+            const newStatus = prompt('Nuevo estado (pendiente, enviada, recibida, cancelada):', currentOrderDetails.estado);
+            if (!newStatus || !['pendiente', 'enviada', 'recibida', 'cancelada'].includes(newStatus)) {
+                alert('Estado inválido');
+                return;
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            const updateData = { estado: newStatus };
+
+            // Agregar fechas según el estado
+            if (newStatus === 'enviada') {
+                updateData.fecha_envio = new Date().toISOString();
+            } else if (newStatus === 'recibida') {
+                updateData.fecha_recepcion = new Date().toISOString();
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/purchase-orders/${currentOrderDetails.id}/status`, {
+                    method: 'PUT',
+                    headers: headers,
+                    body: JSON.stringify(updateData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al actualizar estado');
+                }
+
+                alert('Estado actualizado exitosamente');
+                closePurchaseOrderDetailsModal();
+                loadPurchaseOrders(); // Recargar lista
+
+            } catch (error) {
+                console.error('Error updating order status:', error);
+                alert('Error al actualizar estado: ' + error.message);
+            }
+        }
+
+        // Función para eliminar orden de compra
+        async function deletePurchaseOrder(orderId, orderNumber) {
+            if (!confirm(`¿Está seguro de que desea eliminar la orden ${orderNumber}? Esta acción no se puede deshacer.`)) {
+                return;
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/purchase-orders/${orderId}`, {
+                    method: 'DELETE',
+                    headers: headers
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al eliminar orden');
+                }
+
+                alert('Orden eliminada exitosamente');
+                loadPurchaseOrders(); // Recargar lista
+
+            } catch (error) {
+                console.error('Error deleting purchase order:', error);
+                alert('Error al eliminar orden: ' + error.message);
+            }
         }
 
         // Función para crear promoción
@@ -2701,6 +3048,629 @@
             }
         }
 
+        // Función para abrir modal de orden rápida
+        function openQuickOrderModal() {
+            const checkedBoxes = document.querySelectorAll('.product-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                alert('Selecciona al menos un producto para crear una orden rápida');
+                return;
+            }
+
+            // Obtener productos seleccionados
+            quickOrderProducts = [];
+            checkedBoxes.forEach(checkbox => {
+                const productId = checkbox.getAttribute('data-product-id');
+                const product = globalProductosData.find(p => p.id == productId);
+                if (product) {
+                    quickOrderProducts.push({
+                        id: product.id,
+                        nombre: product.nombre,
+                        precio: product.precio,
+                        cantidad_solicitada: 1
+                    });
+                }
+            });
+
+            // Cargar proveedores
+            loadSuppliersForQuickOrder();
+            updateQuickOrderProductsDisplay();
+
+            document.getElementById('quickOrderModal').classList.add('show');
+        }
+
+        // Función para mostrar lista de productos de un proveedor
+        function showSupplierProducts(supplierId) {
+            currentSupplierId = supplierId;
+            loadSupplierProductList(supplierId);
+            document.getElementById('supplier-products-container').style.display = 'block';
+        
+            // Marcar la fila del proveedor como seleccionada
+            document.querySelectorAll('.supplier-row').forEach(row => {
+                row.classList.remove('selected');
+            });
+            const selectedRow = document.querySelector(`.supplier-row[data-supplier-id="${supplierId}"]`);
+            if (selectedRow) {
+                selectedRow.classList.add('selected');
+            }
+        }
+        
+        // Función para cargar lista de productos de un proveedor
+        async function loadSupplierProductList(supplierId) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/suppliers/${supplierId}/product-list`, { headers });
+                if (!response.ok) throw new Error('Error al cargar lista de productos');
+
+                supplierProductList = await response.json();
+                displaySupplierProductList();
+            } catch (error) {
+                console.error('Error loading supplier product list:', error);
+                document.getElementById('supplier-products-list').style.display = 'none';
+                document.getElementById('no-supplier-products').style.display = 'block';
+                document.getElementById('no-supplier-products').textContent = 'Error al cargar la lista de productos';
+            }
+        }
+
+        // Función para mostrar lista de productos del proveedor
+        function displaySupplierProductList() {
+            const container = document.getElementById('supplier-products-list');
+            const noProducts = document.getElementById('no-supplier-products');
+
+            if (!supplierProductList || supplierProductList.length === 0) {
+                container.style.display = 'none';
+                noProducts.style.display = 'block';
+                return;
+            }
+
+            container.style.display = 'block';
+            noProducts.style.display = 'none';
+
+            container.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Producto</th>
+                            <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Cantidad a Pedir</th>
+                            <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Precio Unitario</th>
+                            <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Total Estimado</th>
+                            <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${supplierProductList.map(item => `
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">${item.nombre}</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                                    <input type="number" min="1" value="${item.cantidad_solicitada}"
+                                           onchange="updateSupplierProductQuantity(${item.producto_id}, this.value)"
+                                           style="width: 80px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+                                </td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${formatCurrency(item.precio_unitario)}</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: right; font-weight: bold;">${formatCurrency(item.cantidad_solicitada * item.precio_unitario)}</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                                    <button onclick="removeFromSupplierList(${item.producto_id})" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">×</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div style="text-align: right; font-size: 18px; font-weight: bold; color: #27ae60;">
+                    Total Estimado: ${formatCurrency(supplierProductList.reduce((sum, item) => sum + (item.cantidad_solicitada * item.precio_unitario), 0))}
+                </div>
+                <div style="margin-top: 15px; text-align: center;">
+                    <button onclick="createPurchaseOrderFromList()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        📋 Crear Orden de Compra
+                    </button>
+                </div>
+            `;
+        }
+
+        // Función para abrir modal de agregar productos a proveedor
+        function openAddProductsToSupplierModal() {
+            if (!currentSupplierId) {
+                alert('Error: No se ha seleccionado un proveedor');
+                return;
+            }
+
+            // Cargar información del proveedor
+            loadSupplierInfoForModal();
+
+            // Limpiar búsqueda
+            document.getElementById('supplierProductSearch').value = '';
+            document.getElementById('supplierProductSearchResults').style.display = 'none';
+
+            // Mostrar productos ya en la lista
+            updateSupplierSelectedProductsDisplay();
+
+            document.getElementById('addProductsToSupplierModal').classList.add('show');
+        }
+
+        // Función para cargar información del proveedor en el modal
+        async function loadSupplierInfoForModal() {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/suppliers/${currentSupplierId}`, { headers });
+                if (!response.ok) throw new Error('Error al cargar información del proveedor');
+
+                const supplier = await response.json();
+                document.getElementById('supplierInfoHeader').innerHTML = `
+                    <strong>Proveedor:</strong> ${supplier.nombre_proveedor}<br>
+                    <strong>Contacto:</strong> ${supplier.nombre_contacto || 'No especificado'}<br>
+                    <strong>Teléfono:</strong> ${supplier.telefono || 'No especificado'}
+                `;
+            } catch (error) {
+                console.error('Error loading supplier info:', error);
+                document.getElementById('supplierInfoHeader').innerHTML = '<span style="color: #dc3545;">Error al cargar información del proveedor</span>';
+            }
+        }
+
+        // Función para buscar productos para agregar a lista de proveedor
+        function searchSupplierProducts() {
+            const query = document.getElementById('supplierProductSearch').value.toLowerCase().trim();
+            const resultsDiv = document.getElementById('supplierProductSearchResults');
+
+            if (query.length < 2) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            const filteredProducts = globalProductosData.filter(product =>
+                product.nombre.toLowerCase().includes(query) ||
+                product.codigo.toLowerCase().includes(query)
+            );
+
+            if (filteredProducts.length > 0) {
+                resultsDiv.innerHTML = filteredProducts.map(product => {
+                    const alreadyInList = supplierProductList.some(item => item.producto_id === product.id);
+                    return `
+                        <div style="padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; ${alreadyInList ? 'background: #e8f5e8;' : ''}" onclick="addProductToSupplierList(${product.id})">
+                            <strong>${product.nombre}</strong> (${product.codigo}) - ${formatCurrency(product.precio)}
+                            ${alreadyInList ? '<span style="color: #28a745; font-size: 12px;">Ya en lista</span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.innerHTML = '<div style="padding: 8px; color: #666;">No se encontraron productos</div>';
+                resultsDiv.style.display = 'block';
+            }
+        }
+
+        // Función para agregar producto a lista de proveedor
+        function addProductToSupplierList(productId) {
+            const product = globalProductosData.find(p => p.id === productId);
+            if (!product) return;
+
+            // Verificar si ya está en la lista
+            if (supplierProductList.some(item => item.producto_id === productId)) {
+                alert('Este producto ya está en la lista');
+                return;
+            }
+
+            supplierProductList.push({
+                producto_id: product.id,
+                nombre: product.nombre,
+                precio_unitario: product.precio,
+                cantidad_solicitada: 1
+            });
+
+            updateSupplierSelectedProductsDisplay();
+            document.getElementById('supplierProductSearch').value = '';
+            document.getElementById('supplierProductSearchResults').style.display = 'none';
+        }
+
+        // Función para actualizar visualización de productos seleccionados para proveedor
+        function updateSupplierSelectedProductsDisplay() {
+            const container = document.getElementById('supplierSelectedProducts');
+
+            if (!supplierProductList || supplierProductList.length === 0) {
+                container.innerHTML = '<p style="color: #666; margin: 0;">No hay productos en la lista</p>';
+                return;
+            }
+
+            container.innerHTML = supplierProductList.map(product => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px; background: white;">
+                    <div style="flex: 1;">
+                        <strong>${product.nombre}</strong><br>
+                        <small style="color: #666;">Precio: ${formatCurrency(product.precio_unitario)}</small>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div>
+                            <label style="font-size: 12px;">Cant:</label>
+                            <input type="number" min="1" value="${product.cantidad_solicitada}"
+                                   onchange="updateSupplierProductQuantity(${product.producto_id}, this.value)"
+                                   style="width: 60px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <button type="button" onclick="removeFromSupplierList(${product.producto_id})"
+                                style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">×</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Función para actualizar cantidad de producto en lista de proveedor
+        function updateSupplierProductQuantity(productId, quantity) {
+            const product = supplierProductList.find(p => p.producto_id === productId);
+            if (product) {
+                product.cantidad_solicitada = parseInt(quantity) || 1;
+                updateSupplierSelectedProductsDisplay();
+            }
+        }
+
+        // Función para remover producto de lista de proveedor
+        function removeFromSupplierList(productId) {
+            supplierProductList = supplierProductList.filter(p => p.producto_id !== productId);
+            updateSupplierSelectedProductsDisplay();
+        }
+
+        // Función para guardar lista de productos del proveedor
+        async function saveSupplierProductList() {
+            if (!currentSupplierId) {
+                alert('Error: No se ha seleccionado un proveedor');
+                return;
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/suppliers/${currentSupplierId}/product-list`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        productos: supplierProductList
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al guardar lista de productos');
+                }
+
+                alert('Lista de productos guardada exitosamente');
+                closeAddProductsToSupplierModal();
+                loadSupplierProductList(currentSupplierId); // Recargar la lista
+
+            } catch (error) {
+                console.error('Error saving supplier product list:', error);
+                alert('Error al guardar lista de productos: ' + error.message);
+            }
+        }
+
+        // Función para limpiar lista de productos del proveedor
+        async function clearSupplierProductList() {
+            if (!currentSupplierId) {
+                alert('Error: No se ha seleccionado un proveedor');
+                return;
+            }
+
+            if (!confirm('¿Estás seguro de que quieres limpiar toda la lista de productos para este proveedor?')) {
+                return;
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/suppliers/${currentSupplierId}/product-list`, {
+                    method: 'DELETE',
+                    headers: headers
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al limpiar lista de productos');
+                }
+
+                supplierProductList = [];
+                displaySupplierProductList();
+                alert('Lista de productos limpiada exitosamente');
+
+            } catch (error) {
+                console.error('Error clearing supplier product list:', error);
+                alert('Error al limpiar lista de productos: ' + error.message);
+            }
+        }
+
+        // Función para crear orden de compra desde la lista de productos del proveedor
+        async function createPurchaseOrderFromList() {
+            if (!currentSupplierId || !supplierProductList || supplierProductList.length === 0) {
+                alert('No hay productos en la lista para crear una orden');
+                return;
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            const orderData = {
+                proveedor_id: currentSupplierId,
+                items: supplierProductList.map(p => ({
+                    producto_id: p.producto_id,
+                    cantidad_solicitada: p.cantidad_solicitada,
+                    precio_unitario: p.precio_unitario
+                })),
+                notas: `Orden creada desde lista de productos del proveedor ${new Date().toLocaleDateString('es-AR')}`
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/purchase-orders`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(orderData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al crear orden');
+                }
+
+                const result = await response.json();
+                alert('Orden de compra creada exitosamente desde la lista de productos');
+
+                // Recargar órdenes de compra
+                loadPurchaseOrders();
+
+            } catch (error) {
+                console.error('Error creating purchase order from list:', error);
+                alert('Error al crear orden de compra: ' + error.message);
+            }
+        }
+
+        // Función para cerrar modal de agregar productos a proveedor
+        function closeAddProductsToSupplierModal() {
+            document.getElementById('addProductsToSupplierModal').classList.remove('show');
+        }
+
+        // Función para cerrar modal de orden rápida
+        function closeQuickOrderModal() {
+            document.getElementById('quickOrderModal').classList.remove('show');
+            quickOrderProducts = [];
+        }
+
+        // Función para cargar proveedores para orden rápida
+        async function loadSuppliersForQuickOrder() {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/suppliers`, { headers });
+                if (!response.ok) throw new Error('Error al cargar proveedores');
+
+                const suppliers = await response.json();
+                const supplierSelect = document.getElementById('quickOrderSupplier');
+                supplierSelect.innerHTML = '<option value="">Seleccionar proveedor...</option>';
+
+                suppliers.forEach(supplier => {
+                    const option = document.createElement('option');
+                    option.value = supplier.id;
+                    option.textContent = supplier.nombre_proveedor;
+                    supplierSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading suppliers for quick order:', error);
+                alert('Error al cargar proveedores');
+            }
+        }
+
+        // Función para actualizar la visualización de productos en orden rápida
+        function updateQuickOrderProductsDisplay() {
+            const container = document.getElementById('quickOrderProducts');
+
+            if (quickOrderProducts.length === 0) {
+                container.innerHTML = '<p style="color: #666; margin: 0;">No hay productos seleccionados</p>';
+                return;
+            }
+
+            container.innerHTML = quickOrderProducts.map(product => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px; background: white;">
+                    <div style="flex: 1;">
+                        <strong>${product.nombre}</strong><br>
+                        <small style="color: #666;">Precio: $${product.precio}</small>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div>
+                            <label style="font-size: 12px;">Cant:</label>
+                            <input type="number" min="1" value="${product.cantidad_solicitada}"
+                                   onchange="updateQuickOrderQuantity(${product.id}, this.value)"
+                                   style="width: 60px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <span style="font-weight: bold; color: #27ae60;">$${(product.precio * product.cantidad_solicitada).toFixed(2)}</span>
+                        <button type="button" onclick="removeFromQuickOrder(${product.id})"
+                                style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">×</button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Calcular y mostrar total
+            const total = quickOrderProducts.reduce((sum, p) => sum + (p.precio * p.cantidad_solicitada), 0);
+            container.innerHTML += `
+                <div style="border-top: 2px solid #ddd; padding-top: 10px; margin-top: 10px; text-align: right; font-weight: bold; color: #27ae60;">
+                    Total Estimado: $${total.toFixed(2)}
+                </div>
+            `;
+        }
+
+        // Función para actualizar cantidad en orden rápida
+        function updateQuickOrderQuantity(productId, quantity) {
+            const product = quickOrderProducts.find(p => p.id === productId);
+            if (product) {
+                product.cantidad_solicitada = parseInt(quantity) || 1;
+                updateQuickOrderProductsDisplay();
+            }
+        }
+
+        // Función para remover producto de orden rápida
+        function removeFromQuickOrder(productId) {
+            quickOrderProducts = quickOrderProducts.filter(p => p.id !== productId);
+            updateQuickOrderProductsDisplay();
+
+            // Desmarcar checkbox correspondiente
+            const checkbox = document.querySelector(`.product-checkbox[data-product-id="${productId}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+
+            // Si no quedan productos, cerrar modal
+            if (quickOrderProducts.length === 0) {
+                closeQuickOrderModal();
+            }
+        }
+
+        // Función para crear orden rápida
+        async function createQuickOrder() {
+            const supplierId = document.getElementById('quickOrderSupplier').value;
+            const notes = document.getElementById('quickOrderNotes').value.trim();
+
+            if (!supplierId) {
+                alert('Debe seleccionar un proveedor');
+                return;
+            }
+
+            if (quickOrderProducts.length === 0) {
+                alert('No hay productos en la orden');
+                return;
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            const orderData = {
+                proveedor_id: supplierId,
+                items: quickOrderProducts.map(p => ({
+                    producto_id: p.id,
+                    cantidad_solicitada: p.cantidad_solicitada,
+                    precio_unitario: p.precio
+                })),
+                notas: notes
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/purchase-orders`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(orderData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al crear orden');
+                }
+
+                const result = await response.json();
+                alert('Orden de compra creada exitosamente');
+
+                // Limpiar selecciones
+                document.querySelectorAll('.product-checkbox:checked').forEach(cb => cb.checked = false);
+                updateEditButton();
+
+                closeQuickOrderModal();
+                loadPurchaseOrders(); // Recargar lista de órdenes
+
+            } catch (error) {
+                console.error('Error creating quick order:', error);
+                alert('Error al crear orden de compra: ' + error.message);
+            }
+        }
+
+        // Función para agregar producto a orden de proveedor desde dropdown
+        function addProductToSupplierOrder(productId, action) {
+            if (!action) return;
+
+            const product = globalProductosData.find(p => p.id == productId);
+            if (!product) return;
+
+            if (action === 'quick-order') {
+                // Agregar a orden rápida
+                if (!quickOrderProducts.find(p => p.id === productId)) {
+                    quickOrderProducts.push({
+                        id: product.id,
+                        nombre: product.nombre,
+                        precio: product.precio,
+                        cantidad_solicitada: 1
+                    });
+                }
+                openQuickOrderModal();
+            } else if (action.startsWith('supplier-')) {
+                // Agregar a lista de proveedor específico
+                const supplierId = action.replace('supplier-', '');
+                addProductToSupplierListFromDropdown(productId, supplierId);
+            }
+
+            // Resetear el dropdown
+            event.target.value = '';
+        }
+
+        // Función para agregar producto a lista de proveedor desde dropdown
+        async function addProductToSupplierListFromDropdown(productId, supplierId) {
+            const product = globalProductosData.find(p => p.id == productId);
+            if (!product) return;
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (authCredentials) {
+                headers['Authorization'] = 'Basic ' + btoa(authCredentials.username + ':' + authCredentials.password);
+            }
+
+            try {
+                // Obtener lista actual del proveedor
+                const response = await fetch(`${API_BASE}/suppliers/${supplierId}/product-list`, { headers });
+                if (!response.ok) throw new Error('Error al obtener lista de productos');
+
+                let supplierList = await response.json();
+
+                // Verificar si el producto ya está en la lista
+                if (supplierList.some(item => item.producto_id === productId)) {
+                    alert('Este producto ya está en la lista de compras de este proveedor');
+                    return;
+                }
+
+                // Agregar el producto a la lista
+                supplierList.push({
+                    producto_id: product.id,
+                    nombre: product.nombre,
+                    precio_unitario: product.precio,
+                    cantidad_solicitada: 1
+                });
+
+                // Guardar la lista actualizada
+                const saveResponse = await fetch(`${API_BASE}/suppliers/${supplierId}/product-list`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ productos: supplierList })
+                });
+
+                if (!saveResponse.ok) {
+                    const errorData = await saveResponse.json();
+                    throw new Error(errorData.error || 'Error al guardar lista de productos');
+                }
+
+                alert(`Producto "${product.nombre}" agregado a la lista de compras del proveedor`);
+                // Recargar datos si es necesario
+                fetchAndDisplayData();
+
+            } catch (error) {
+                console.error('Error adding product to supplier list:', error);
+                alert('Error al agregar producto a la lista: ' + error.message);
+            }
+        }
+
         // Función para actualizar el estado del botón editar
         function updateEditButton() {
             const checkedBoxes = document.querySelectorAll('.product-checkbox:checked');
@@ -2715,27 +3685,6 @@
             }
         }
 
-        // Event listeners para checkboxes de productos
-        document.addEventListener('change', function(e) {
-            if (e.target.classList.contains('product-checkbox')) {
-                // Para selección única, desmarcar otros
-                if (e.target.checked) {
-                    document.querySelectorAll('.product-checkbox').forEach(cb => {
-                        if (cb !== e.target) cb.checked = false;
-                    });
-                }
-                updateEditButton();
-            }
-        });
-
-        // Event listener para el botón editar
-        document.getElementById('editSelectedBtn').addEventListener('click', function() {
-            const checkedBox = document.querySelector('.product-checkbox:checked');
-            if (checkedBox) {
-                const productId = checkedBox.getAttribute('data-product-id');
-                editProduct(productId);
-            }
-        });
 
         // Función especial para mostrar ventas agrupadas por factura
         function displaySalesGrouped(sales) {
@@ -3070,7 +4019,7 @@
                 authCredentials = JSON.parse(stored);
                 isLoggedIn = true;
             }
-            updateUIBasedOnAuth();
+            // updateUIBasedOnAuth() will be called after DOMContentLoaded
         }
 
         // Función para ejecutar acción de datos seleccionada
@@ -3678,41 +4627,255 @@
             }
         }
 
-        // Event listeners para filtros de ventas
-        document.getElementById('filter-sales-btn').addEventListener('click', filterSales);
-        document.getElementById('clear-filter-btn').addEventListener('click', clearSalesFilter);
-        document.getElementById('today-sales-btn').addEventListener('click', showTodaySales);
+        // Función para ocultar el loading overlay
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
 
-        // Permitir filtrar con Enter en los campos de fecha
-        document.getElementById('sales-date').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') filterSales();
-        });
-        document.getElementById('sales-start-date').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') filterSales();
-        });
-        document.getElementById('sales-end-date').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') filterSales();
-        });
+        // Función para mostrar el loading overlay
+        function showLoadingOverlay() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+            }
+        }
 
-        // Event listeners para dropdowns de acciones
-        document.getElementById('dataActionSelect').addEventListener('change', function() {
-            const btn = document.getElementById('executeDataActionBtn');
-            btn.disabled = !this.value;
-        });
+        // Función para inicializar todos los event listeners de botones
+        function initializeButtonEventListeners() {
+            // Event listeners para filtros de ventas
+            const filterBtn = document.getElementById('filter-sales-btn');
+            if (filterBtn) filterBtn.addEventListener('click', filterSales);
 
-        document.getElementById('systemActionSelect').addEventListener('change', function() {
-            const btn = document.getElementById('executeSystemActionBtn');
-            btn.disabled = !this.value;
-        });
+            const clearFilterBtn = document.getElementById('clear-filter-btn');
+            if (clearFilterBtn) clearFilterBtn.addEventListener('click', clearSalesFilter);
+
+            const todaySalesBtn = document.getElementById('today-sales-btn');
+            if (todaySalesBtn) todaySalesBtn.addEventListener('click', showTodaySales);
+
+            // Permitir filtrar con Enter en los campos de fecha
+            const salesDate = document.getElementById('sales-date');
+            if (salesDate) salesDate.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') filterSales();
+            });
+
+            const salesStartDate = document.getElementById('sales-start-date');
+            if (salesStartDate) salesStartDate.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') filterSales();
+            });
+
+            const salesEndDate = document.getElementById('sales-end-date');
+            if (salesEndDate) salesEndDate.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') filterSales();
+            });
+
+            // Event listeners para dropdowns de acciones
+            const dataActionSelect = document.getElementById('dataActionSelect');
+            if (dataActionSelect) dataActionSelect.addEventListener('change', function() {
+                const btn = document.getElementById('executeDataActionBtn');
+                if (btn) btn.disabled = !this.value;
+            });
+
+            const systemActionSelect = document.getElementById('systemActionSelect');
+            if (systemActionSelect) systemActionSelect.addEventListener('change', function() {
+                const btn = document.getElementById('executeSystemActionBtn');
+                if (btn) btn.disabled = !this.value;
+            });
+
+            // Event listeners para checkboxes de productos
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('product-checkbox')) {
+                    // Para selección única, desmarcar otros
+                    if (e.target.checked) {
+                        document.querySelectorAll('.product-checkbox').forEach(cb => {
+                            if (cb !== e.target) cb.checked = false;
+                        });
+                    }
+                    updateEditButton();
+                }
+            });
+
+            // Event listener para el botón editar
+            const editSelectedBtn = document.getElementById('editSelectedBtn');
+            if (editSelectedBtn) editSelectedBtn.addEventListener('click', function() {
+                const checkedBox = document.querySelector('.product-checkbox:checked');
+                if (checkedBox) {
+                    const productId = checkedBox.getAttribute('data-product-id');
+                    editProduct(productId);
+                }
+            });
+
+            // Event listener para el botón "Cierre de Caja"
+            const closeRegisterBtn = document.getElementById('closeRegisterBtn');
+            if (closeRegisterBtn) closeRegisterBtn.addEventListener('click', function() {
+                document.getElementById('cierreModal').classList.add('show');
+            });
+
+            // Event listener para el botón "Ir a Caja"
+            const returnToPOSBtn = document.getElementById('returnToPOSBtn');
+            if (returnToPOSBtn) returnToPOSBtn.addEventListener('click', returnToPOS);
+
+            // Event listeners para botones de acciones de datos
+            const executeDataActionBtn = document.getElementById('executeDataActionBtn');
+            if (executeDataActionBtn) executeDataActionBtn.addEventListener('click', executeDataAction);
+
+            const executeSystemActionBtn = document.getElementById('executeSystemActionBtn');
+            if (executeSystemActionBtn) executeSystemActionBtn.addEventListener('click', executeSystemAction);
+
+            // Event listeners para botones de cierre de caja
+            const calculateCloseRegisterBtn = document.getElementById('calculateCloseRegisterBtn');
+            if (calculateCloseRegisterBtn) calculateCloseRegisterBtn.addEventListener('click', calculateCloseRegister);
+
+            const closeCierreModalBtn = document.getElementById('closeCierreModalBtn');
+            if (closeCierreModalBtn) closeCierreModalBtn.addEventListener('click', closeCierreModal);
+
+            // Event listeners para botones de promociones
+            const openCreatePromotionModalBtn = document.getElementById('openCreatePromotionModalBtn');
+            if (openCreatePromotionModalBtn) openCreatePromotionModalBtn.addEventListener('click', openCreatePromotionModal);
+
+            const cleanDuplicatePromotionsBtn = document.getElementById('cleanDuplicatePromotionsBtn');
+            if (cleanDuplicatePromotionsBtn) cleanDuplicatePromotionsBtn.addEventListener('click', cleanDuplicatePromotions);
+
+            // Event listeners para botones de productos
+            const openAddProductModalBtn = document.getElementById('openAddProductModalBtn');
+            if (openAddProductModalBtn) openAddProductModalBtn.addEventListener('click', openAddProductModal);
+
+            const openQuickOrderModalBtn = document.getElementById('openQuickOrderModalBtn');
+            if (openQuickOrderModalBtn) openQuickOrderModalBtn.addEventListener('click', openQuickOrderModal);
+
+            const searchBtn = document.getElementById('searchBtn');
+            if (searchBtn) searchBtn.addEventListener('click', function() {
+                alert('Usa Ctrl+F para buscar en la página');
+            });
+
+            const sortBtn = document.getElementById('sortBtn');
+            if (sortBtn) sortBtn.addEventListener('click', toggleSortMode);
+
+            // Event listeners para botones de proveedores
+            const openAddSupplierModalBtn = document.getElementById('openAddSupplierModalBtn');
+            if (openAddSupplierModalBtn) openAddSupplierModalBtn.addEventListener('click', openAddSupplierModal);
+
+            const openAddProductsToSupplierModalBtn = document.getElementById('openAddProductsToSupplierModalBtn');
+            if (openAddProductsToSupplierModalBtn) openAddProductsToSupplierModalBtn.addEventListener('click', openAddProductsToSupplierModal);
+
+            const clearSupplierProductListBtn = document.getElementById('clearSupplierProductListBtn');
+            if (clearSupplierProductListBtn) clearSupplierProductListBtn.addEventListener('click', clearSupplierProductList);
+
+            // Event listeners para botones de órdenes de compra
+            const openCreatePurchaseOrderModalBtn = document.getElementById('openCreatePurchaseOrderModalBtn');
+            if (openCreatePurchaseOrderModalBtn) openCreatePurchaseOrderModalBtn.addEventListener('click', openCreatePurchaseOrderModal);
+
+            const loadPurchaseOrdersBtn = document.getElementById('loadPurchaseOrdersBtn');
+            if (loadPurchaseOrdersBtn) loadPurchaseOrdersBtn.addEventListener('click', loadPurchaseOrders);
+
+            // Event listeners para botones de registro de operaciones
+            const loadOperationsLogBtn = document.getElementById('loadOperationsLogBtn');
+            if (loadOperationsLogBtn) loadOperationsLogBtn.addEventListener('click', loadOperationsLog);
+
+            const clearOperationsLogBtn = document.getElementById('clearOperationsLogBtn');
+            if (clearOperationsLogBtn) clearOperationsLogBtn.addEventListener('click', clearOperationsLog);
+
+            // Event listeners para botones de modales de edición
+            const closeEditModalBtn = document.getElementById('closeEditModalBtn');
+            if (closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditModal);
+
+            const closeAddModalBtn = document.getElementById('closeAddModalBtn');
+            if (closeAddModalBtn) closeAddModalBtn.addEventListener('click', closeAddModal);
+
+            const closeAddSupplierModalBtn = document.getElementById('closeAddSupplierModalBtn');
+            if (closeAddSupplierModalBtn) closeAddSupplierModalBtn.addEventListener('click', closeAddSupplierModal);
+
+            const closeEditSupplierModalBtn = document.getElementById('closeEditSupplierModalBtn');
+            if (closeEditSupplierModalBtn) closeEditSupplierModalBtn.addEventListener('click', closeEditSupplierModal);
+
+            const closeCreateSupplierOrderModalBtn = document.getElementById('closeCreateSupplierOrderModalBtn');
+            if (closeCreateSupplierOrderModalBtn) closeCreateSupplierOrderModalBtn.addEventListener('click', closeCreateSupplierOrderModal);
+
+            const closePurchaseOrderDetailsModalBtn = document.getElementById('closePurchaseOrderDetailsModalBtn');
+            if (closePurchaseOrderDetailsModalBtn) closePurchaseOrderDetailsModalBtn.addEventListener('click', closePurchaseOrderDetailsModal);
+
+            const updateOrderStatusBtn = document.getElementById('updateOrderStatusBtn');
+            if (updateOrderStatusBtn) updateOrderStatusBtn.addEventListener('click', updateOrderStatus);
+
+            const closeCreatePromotionModalBtn = document.getElementById('closeCreatePromotionModalBtn');
+            if (closeCreatePromotionModalBtn) closeCreatePromotionModalBtn.addEventListener('click', closeCreatePromotionModal);
+
+            // Event listeners para botones de reportes
+            const selectAllSectionsBtn = document.getElementById('selectAllSectionsBtn');
+            if (selectAllSectionsBtn) selectAllSectionsBtn.addEventListener('click', selectAllSections);
+
+            const deselectAllSectionsBtn = document.getElementById('deselectAllSectionsBtn');
+            if (deselectAllSectionsBtn) deselectAllSectionsBtn.addEventListener('click', deselectAllSections);
+
+            const closeReportOptionsModalBtn = document.getElementById('closeReportOptionsModalBtn');
+            if (closeReportOptionsModalBtn) closeReportOptionsModalBtn.addEventListener('click', closeReportOptionsModal);
+
+            const generateSelectedReportBtn = document.getElementById('generateSelectedReportBtn');
+            if (generateSelectedReportBtn) generateSelectedReportBtn.addEventListener('click', generateSelectedReport);
+
+            // Event listeners para botones de soporte
+            const closeSupportModalBtn = document.getElementById('closeSupportModalBtn');
+            if (closeSupportModalBtn) closeSupportModalBtn.addEventListener('click', closeSupportModal);
+
+            const contactSupportBtn = document.getElementById('contactSupportBtn');
+            if (contactSupportBtn) contactSupportBtn.addEventListener('click', contactSupport);
+
+            // Event listeners para botones de orden rápida
+            const closeQuickOrderModalBtn = document.getElementById('closeQuickOrderModalBtn');
+            if (closeQuickOrderModalBtn) closeQuickOrderModalBtn.addEventListener('click', closeQuickOrderModal);
+
+            const createQuickOrderBtn = document.getElementById('createQuickOrderBtn');
+            if (createQuickOrderBtn) createQuickOrderBtn.addEventListener('click', createQuickOrder);
+
+            // Event listeners para botones de agregar productos a proveedor
+            const closeAddProductsToSupplierModalBtn = document.getElementById('closeAddProductsToSupplierModalBtn');
+            if (closeAddProductsToSupplierModalBtn) closeAddProductsToSupplierModalBtn.addEventListener('click', closeAddProductsToSupplierModal);
+
+            const saveSupplierProductListBtn = document.getElementById('saveSupplierProductListBtn');
+            if (saveSupplierProductListBtn) saveSupplierProductListBtn.addEventListener('click', saveSupplierProductList);
+
+            // Event listeners para botones de reset
+            const selectAllResetSectionsBtn = document.getElementById('selectAllResetSectionsBtn');
+            if (selectAllResetSectionsBtn) selectAllResetSectionsBtn.addEventListener('click', selectAllResetSections);
+
+            const deselectAllResetSectionsBtn = document.getElementById('deselectAllResetSectionsBtn');
+            if (deselectAllResetSectionsBtn) deselectAllResetSectionsBtn.addEventListener('click', deselectAllResetSections);
+
+            const closeResetOptionsModalBtn = document.getElementById('closeResetOptionsModalBtn');
+            if (closeResetOptionsModalBtn) closeResetOptionsModalBtn.addEventListener('click', closeResetOptionsModal);
+
+            const performSelectiveResetBtn = document.getElementById('performSelectiveResetBtn');
+            if (performSelectiveResetBtn) performSelectiveResetBtn.addEventListener('click', performSelectiveReset);
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Mostrar loading inicialmente
+            showLoadingOverlay();
+
             loadAuthFromStorage();
+            updateUIBasedOnAuth(); // Now safe to call after DOM is loaded
+
+            // Initialize all button event listeners
+            initializeButtonEventListeners();
+
             if (checkDashboardAccess()) {
                 loadLicenseStatus(); // Cargar estado de licencia
                 fetchAndDisplayData().then(() => {
                     // Inicializar el texto del botón de ordenamiento
                     updateSortButtonText();
+                    // Cargar órdenes de compra
+                    loadPurchaseOrders();
+                    // Ocultar loading después de cargar datos
+                    hideLoadingOverlay();
+                }).catch(error => {
+                    console.error('Error loading data:', error);
+                    hideLoadingOverlay();
                 });
+            } else {
+                // Si no hay acceso, ocultar loading
+                hideLoadingOverlay();
             }
         });
     </script>

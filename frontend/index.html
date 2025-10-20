@@ -1164,8 +1164,10 @@
                 };
                 addNewSaleToCache(newSale);
 
-                // Actualizar factura general
-                updateGeneralInvoice();
+                // Actualizar factura general (solo si existe el contenedor)
+                if (document.getElementById('generalInvoiceContent')) {
+                    updateGeneralInvoice();
+                }
 
                 cart = [];
                 updateCart();
@@ -1643,7 +1645,7 @@
             loadCategories();
             searchProducts();
             // No cargar loadRecentInvoices() automáticamente para evitar prompts de auth
-            updateGeneralInvoice();
+            // updateGeneralInvoice(); // Removed - element doesn't exist in index.html
         });
 
         // Manejar navegación hacia atrás del navegador
