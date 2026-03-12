@@ -68,3 +68,4 @@ export class ProductService {
 }
 
 export default ProductService;
+export const productService = new ProductService(window.ApiClient);

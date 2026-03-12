@@ -12,6 +12,8 @@ import routes from './routes/index.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { logger } from './middleware/logger.js';
 import { dbAll, dbRun } from './config/database.js';
+import { addPromocionTipoColumn } from './migrations/004_add_promocion_tipo_column.js';
+import { seedProducts } from './migrations/005_seed_data.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,46 +23,202 @@ async function runMigrations() {
   console.log('🔄 Running database migrations...');
   
   try {
-    // Add 'pagado' column to deuda_productos if not exists
-    const tableInfo = await dbAll("PRAGMA table_info(deuda_productos)");
-    const columnExists = tableInfo && Array.isArray(tableInfo) && tableInfo.some(col => col.name === 'pagado');
+    // First, create base tables if they don't exist
     
-    if (!columnExists) {
-      await dbRun(`ALTER TABLE deuda_productos ADD COLUMN pagado INTEGER DEFAULT 0`);
-      console.log('✅ Added "pagado" column to deuda_productos');
-    }
-    
-    // Add 'estado' column to deudas if not exists
-    const debtTableInfo = await dbAll("PRAGMA table_info(deudas)");
-    const hasEstado = debtTableInfo && Array.isArray(debtTableInfo) && debtTableInfo.some(col => col.name === 'estado');
-    
-    if (!hasEstado) {
-      await dbRun(`ALTER TABLE deudas ADD COLUMN estado TEXT DEFAULT 'pendiente'`);
-      console.log('✅ Added "estado" column to deudas');
-    }
-    
-    // Add 'fecha' column to deudas if not exists
-    const hasFecha = debtTableInfo && Array.isArray(debtTableInfo) && debtTableInfo.some(col => col.name === 'fecha');
-    
-    if (!hasFecha) {
-      await dbRun(`ALTER TABLE deudas ADD COLUMN fecha DATETIME DEFAULT CURRENT_TIMESTAMP`);
-      console.log('✅ Added "fecha" column to deudas');
-    }
-    
-    // Create deuda_pagos table if not exists
+    // Create productos table
     await dbRun(`
-      CREATE TABLE IF NOT EXISTS deuda_pagos (
+      CREATE TABLE IF NOT EXISTS productos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        deuda_id INTEGER NOT NULL,
-        fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
-        monto REAL NOT NULL,
-        metodo_pago TEXT DEFAULT 'efectivo',
-        FOREIGN KEY (deuda_id) REFERENCES deudas(id)
+        codigo TEXT UNIQUE,
+        nombre TEXT NOT NULL,
+        descripcion TEXT,
+        precio REAL NOT NULL DEFAULT 0,
+        stock INTEGER DEFAULT 0,
+        categoria TEXT,
+        codigo_barras TEXT,
+        activo INTEGER DEFAULT 1,
+        lote_actual_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('✅ Created "deuda_pagos" table');
+    console.log('✅ Created "productos" table');
     
-    console.log('✅ Database migrations completed');
+    // Create usuarios table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        nombre TEXT NOT NULL,
+        rol TEXT DEFAULT 'cajero',
+        activo INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✅ Created "usuarios" table');
+    
+    // Create clientes table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS clientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        telefono TEXT,
+        email TEXT,
+        direccion TEXT,
+        observaciones TEXT,
+        dni TEXT,
+        fecha_alta DATETIME DEFAULT CURRENT_TIMESTAMP,
+        activo INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✅ Created "clientes" table');
+    
+    // Create ventas table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS ventas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        numero_factura TEXT UNIQUE,
+        fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+        total REAL NOT NULL DEFAULT 0,
+        metodo_pago TEXT DEFAULT 'efectivo',
+        cliente_id INTEGER,
+        usuario_id INTEGER,
+        observaciones TEXT,
+        estado TEXT DEFAULT 'completada',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (cliente_id) REFERENCES clientes(id),
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+      )
+    `);
+    console.log('✅ Created "ventas" table');
+    
+    // Create venta_items table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS venta_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        venta_id INTEGER NOT NULL,
+        producto_id INTEGER NOT NULL,
+        cantidad INTEGER NOT NULL,
+        precio_unitario REAL NOT NULL,
+        subtotal REAL NOT NULL,
+        FOREIGN KEY (venta_id) REFERENCES ventas(id) ON DELETE CASCADE,
+        FOREIGN KEY (producto_id) REFERENCES productos(id)
+      )
+    `);
+    console.log('✅ Created "venta_items" table');
+    
+    // Create lotes table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS lotes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        producto_id INTEGER NOT NULL,
+        numero_lote TEXT,
+        fecha_vencimiento DATETIME,
+        cantidad_inicial INTEGER NOT NULL,
+        cantidad_actual INTEGER NOT NULL,
+        costo_unitario REAL,
+        estado TEXT DEFAULT 'activo',
+        notas TEXT,
+        fecha_ingreso DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (producto_id) REFERENCES productos(id)
+      )
+    `);
+    console.log('✅ Created "lotes" table');
+    
+    // Create deudas table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS deudas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente_id INTEGER NOT NULL,
+        fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+        monto_original REAL NOT NULL DEFAULT 0,
+        monto_pendiente REAL NOT NULL DEFAULT 0,
+        total REAL NOT NULL DEFAULT 0,
+        estado TEXT DEFAULT 'pendiente',
+        observaciones TEXT,
+        fecha_vencimiento DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+      )
+    `);
+    console.log('✅ Created "deudas" table');
+    
+    // Create deuda_productos table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS deuda_productos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        deuda_id INTEGER NOT NULL,
+        producto_id INTEGER NOT NULL,
+        cantidad INTEGER NOT NULL,
+        precio_unitario REAL NOT NULL,
+        pagado INTEGER DEFAULT 0,
+        FOREIGN KEY (deuda_id) REFERENCES deudas(id) ON DELETE CASCADE,
+        FOREIGN KEY (producto_id) REFERENCES productos(id)
+      )
+    `);
+    console.log('✅ Created "deuda_productos" table');
+    
+    // Create cierres_caja table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS cierres_caja (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha_apertura DATETIME NOT NULL,
+        fecha_cierre DATETIME,
+        monto_inicial REAL NOT NULL,
+        monto_final REAL,
+        ventas_total REAL DEFAULT 0,
+        egresos_total REAL DEFAULT 0,
+        diferencia REAL,
+        observaciones TEXT,
+        estado TEXT DEFAULT 'abierta',
+        usuario_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+      )
+    `);
+    console.log('✅ Created "cierres_caja" table');
+    
+    // Create promociones table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS promociones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        descripcion TEXT,
+        descuento REAL NOT NULL DEFAULT 0,
+        fecha_inicio TEXT,
+        fecha_fin TEXT,
+        activa INTEGER DEFAULT 1,
+        tipo TEXT DEFAULT 'individual',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✅ Created "promociones" table');
+    
+    // Create promociones_productos table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS promociones_productos (
+        promocion_id INTEGER NOT NULL,
+        producto_id INTEGER NOT NULL,
+        cantidad INTEGER DEFAULT 1,
+        PRIMARY KEY (promocion_id, producto_id),
+        FOREIGN KEY (promocion_id) REFERENCES promociones(id) ON DELETE CASCADE,
+        FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('✅ Created "promociones_productos" table');
+    
+    // Database schema is now complete with all columns defined at creation
+    // No additional migrations needed - all columns are included in table definitions
+    
+    // Run promotions migration (if needed)
+    await addPromocionTipoColumn();
+    
+    // Seed sample products
+    await seedProducts();
+    
+    console.log('✅ Database schema initialized with all columns');
   } catch (error) {
     console.error('❌ Migration error:', error.message);
   }

@@ -22,10 +22,10 @@ export class DashboardPage {
           <aside class="products-panel">
             <div class="search-bar">
               <input type="text" id="product-search" placeholder="Buscar productos o escanear código..." />
-              <button id="barcode-btn" class="btn btn-primary" title="Escanear código de barras">📷</button>
             </div>
             <div class="categories">
               <button class="category-btn active" data-category="all">Todos</button>
+              <button class="category-btn promo-filter-btn" data-category="promo">🎉 Promociones</button>
             </div>
             <div id="products-grid" class="products-grid">
               <!-- Products will be loaded here -->
@@ -83,9 +83,11 @@ export class DashboardPage {
       if (response.found) {
         // Add product to cart
         this.addToCart(response.id);
-        // Clear search input
+        // Clear search input and show all products
         const searchInput = document.getElementById('product-search');
         if (searchInput) searchInput.value = '';
+        // Re-render all products to show the full list again
+        this.renderProducts();
       } else {
         this.showError('Producto no encontrado: ' + barcode);
       }
@@ -162,9 +164,16 @@ export class DashboardPage {
     }
   }
 
-  renderProducts(products) {
+  renderProducts(products = null) {
     const grid = document.getElementById('products-grid');
     if (!grid) return;
+    
+    // Use all products if no filtered list is provided
+    const productList = products || this.products;
+    if (!productList || !productList.length) {
+      grid.innerHTML = '<p>No hay productos</p>';
+      return;
+    }
     
     const formatDate = (dateStr) => {
       if (!dateStr) return 'Sin fecha';
@@ -178,15 +187,32 @@ export class DashboardPage {
       return 'in-stock';
     };
     
-    grid.innerHTML = products.map(product => {
+    const hasActivePromo = (promociones) => {
+      return promociones && Array.isArray(promociones) && promociones.length > 0;
+    };
+    
+    const getBestPromo = (promociones) => {
+      if (!hasActivePromo(promociones)) return null;
+      return promociones.reduce((best, current) => 
+        current.descuento > best.descuento ? current : best
+      );
+    };
+    
+    grid.innerHTML = productList.map(product => {
       const stockStatus = getStockStatus(product.stock_calculado ?? product.stock ?? 0);
       const proximoVenc = product.proximo_vencimiento 
         ? formatDate(product.proximo_vencimiento) 
         : 'Sin lotes';
       const stockValue = product.stock_calculado ?? product.stock ?? 0;
       
+      const isPromo = hasActivePromo(product.promociones);
+      const bestPromo = getBestPromo(product.promociones);
+      const promoClass = isPromo ? 'product-card-promo' : '';
+      const promoBadge = isPromo ? `<div class="product-promo-badge">🎉 ${bestPromo.descuento}% OFF</div>` : '';
+      
       return `
-        <div class="product-card ${stockStatus}" data-id="${product.id}" data-stock="${stockValue}">
+        <div class="product-card ${stockStatus} ${promoClass}" data-id="${product.id}" data-stock="${stockValue}" data-promo="${isPromo}">
+          ${promoBadge}
           <div class="product-name">${product.nombre}</div>
           <div class="product-info">
             <div class="product-stock">Stock: ${stockValue} unidades</div>
@@ -233,10 +259,32 @@ export class DashboardPage {
       });
     }
 
-    // Barcode scanner button
-    const barcodeBtn = document.getElementById('barcode-btn');
-    if (barcodeBtn) {
-      barcodeBtn.addEventListener('click', () => this.openBarcodeScanner());
+    // Promo filter button
+    const promoFilterBtn = document.querySelector('.promo-filter-btn');
+    if (promoFilterBtn) {
+      promoFilterBtn.addEventListener('click', (e) => {
+        // Toggle active class
+        const allBtns = document.querySelectorAll('.category-btn');
+        allBtns.forEach(btn => btn.classList.remove('active'));
+        e.target.classList.add('active');
+        
+        // Filter products with promotions
+        const promoProducts = this.products.filter(p => 
+          p.promociones && Array.isArray(p.promociones) && p.promociones.length > 0
+        );
+        this.renderProducts(promoProducts);
+      });
+    }
+
+    // All products button (re-show all)
+    const allCategoryBtn = document.querySelector('[data-category="all"]');
+    if (allCategoryBtn) {
+      allCategoryBtn.addEventListener('click', (e) => {
+        const allBtns = document.querySelectorAll('.category-btn');
+        allBtns.forEach(btn => btn.classList.remove('active'));
+        e.target.classList.add('active');
+        this.renderProducts(this.products);
+      });
     }
 
     // Product click - add to cart
@@ -293,6 +341,18 @@ export class DashboardPage {
       return;
     }
 
+    // Calculate price with discount if product has active promotions
+    let finalPrice = product.precio;
+    let appliedPromo = null;
+    if (product.promociones && product.promociones.length > 0) {
+      // Get the best promotion (highest discount)
+      const bestPromo = product.promociones.reduce((best, current) => 
+        current.descuento > best.descuento ? current : best
+      );
+      finalPrice = product.precio * (1 - bestPromo.descuento / 100);
+      appliedPromo = bestPromo;
+    }
+
     const existing = this.cart.find(item => item.product.id === productId);
     if (existing) {
       // Check if adding more would exceed available stock
@@ -302,7 +362,12 @@ export class DashboardPage {
       }
       existing.quantity++;
     } else {
-      this.cart.push({ product, quantity: 1 });
+      this.cart.push({ 
+        product, 
+        quantity: 1,
+        finalPrice: finalPrice,  // Price with discount applied
+        appliedPromo: appliedPromo  // Promotion info
+      });
     }
     this.renderCart();
   }
@@ -338,13 +403,25 @@ export class DashboardPage {
 
     let total = 0;
     cartItems.innerHTML = this.cart.map(item => {
-      const subtotal = item.product.precio * item.quantity;
+      // Use finalPrice if available (with discount), otherwise use product price
+      const price = item.finalPrice !== undefined ? item.finalPrice : item.product.precio;
+      const subtotal = price * item.quantity;
       total += subtotal;
+      
+      // Show original price crossed out if there's a promotion
+      const hasPromo = item.appliedPromo !== null && item.appliedPromo !== undefined;
+      const originalPriceDisplay = hasPromo 
+        ? `<span class="original-price">${Number(item.product.precio).toFixed(2)}</span> ` 
+        : '';
+      const promoBadge = hasPromo 
+        ? `<span class="promo-badge">🎉 ${item.appliedPromo.descuento}% OFF</span>` 
+        : '';
+      
       return `
         <div class="cart-item" data-id="${item.product.id}">
           <div class="cart-item-info">
             <div class="cart-item-name">${item.product.nombre}</div>
-            <div class="cart-item-price">$${Number(item.product.precio).toFixed(2)} x ${item.quantity}</div>
+            <div class="cart-item-price">${originalPriceDisplay}${Number(price).toFixed(2)} x ${item.quantity} ${promoBadge}</div>
           </div>
           <div class="cart-item-actions">
             <button class="qty-btn minus" data-id="${item.product.id}">-</button>
@@ -352,12 +429,12 @@ export class DashboardPage {
             <button class="qty-btn plus" data-id="${item.product.id}">+</button>
             <button class="remove-btn" data-id="${item.product.id}">×</button>
           </div>
-          <div class="cart-item-subtotal">$${subtotal.toFixed(2)}</div>
+          <div class="cart-item-subtotal">${subtotal.toFixed(2)}</div>
         </div>
       `;
     }).join('');
 
-    cartTotal.textContent = `$${total.toFixed(2)}`;
+    cartTotal.textContent = `${total.toFixed(2)}`;
 
     // Bind cart events
     cartItems.querySelectorAll('.minus').forEach(btn => {
@@ -395,7 +472,10 @@ export class DashboardPage {
       return;
     }
 
-    const total = this.cart.reduce((sum, item) => sum + (item.product.precio * item.quantity), 0);
+    const total = this.cart.reduce((sum, item) => {
+      const price = item.finalPrice !== undefined ? item.finalPrice : item.product.precio;
+      return sum + (price * item.quantity);
+    }, 0);
     
     // Show payment method selection
     const paymentMethods = [
@@ -517,19 +597,193 @@ export class DashboardPage {
   }
 
   async processSaleWithMethod(metodoPago, total) {
+    // For cuenta corriente, we need to select a customer first
+    if (metodoPago === 'cuenta') {
+      await this.selectCustomerAndProcessSale(total);
+      return;
+    }
+    
+    // For other payment methods, process normally
+    await this.doProcessSale(metodoPago, null);
+  }
+
+  async selectCustomerAndProcessSale(total) {
+    try {
+      // Load customers
+      const customers = await this.services.customer.getAll();
+      
+      if (!customers || customers.length === 0) {
+        alert('No hay clientes registrados. Por favor cree un cliente primero.');
+        return;
+      }
+      
+      // Create customer selection modal
+      const modal = document.createElement('div');
+      modal.className = 'customer-select-modal';
+      modal.innerHTML = `
+        <div class="customer-select-modal-content">
+          <h3>Seleccionar Cliente</h3>
+          <p>Seleccione el cliente para la cuenta corriente</p>
+          <div class="customer-search">
+            <input type="text" id="customer-search-input" placeholder="Buscar cliente..." />
+          </div>
+          <div class="customer-list">
+            ${customers.map(c => `
+              <div class="customer-option" data-id="${c.id}">
+                <div class="customer-name">${c.nombre}</div>
+                <div class="customer-info">${c.telefono || ''} ${c.direccion ? '- ' + c.direccion : ''}</div>
+              </div>
+            `).join('')}
+          </div>
+          <button class="cancel-btn">Cancelar</button>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      // Add styles if not already added
+      if (!document.getElementById('customer-select-modal-styles')) {
+        const style = document.createElement('style');
+        style.id = 'customer-select-modal-styles';
+        style.textContent = `
+          .customer-select-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+          }
+          .customer-select-modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+          }
+          .customer-select-modal-content h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+          }
+          .customer-select-modal-content p {
+            margin: 0 0 15px 0;
+            color: #666;
+          }
+          .customer-search {
+            margin-bottom: 15px;
+          }
+          .customer-search input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+          }
+          .customer-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 300px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+          }
+          .customer-option {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+          }
+          .customer-option:hover {
+            background: #f5f5f5;
+          }
+          .customer-name {
+            font-weight: bold;
+            color: #333;
+          }
+          .customer-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+          }
+          .customer-select-modal-content .cancel-btn {
+            margin-top: 15px;
+            padding: 10px 20px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      // Handle customer search
+      const searchInput = modal.querySelector('#customer-search-input');
+      const customerOptions = modal.querySelectorAll('.customer-option');
+      
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        customerOptions.forEach(opt => {
+          const name = opt.querySelector('.customer-name').textContent.toLowerCase();
+          opt.style.display = name.includes(query) ? 'block' : 'none';
+        });
+      });
+      
+      // Handle customer selection
+      customerOptions.forEach(opt => {
+        opt.addEventListener('click', () => {
+          const clienteId = parseInt(opt.dataset.id);
+          modal.remove();
+          this.doProcessSale('cuenta', clienteId);
+        });
+      });
+      
+      // Handle cancel
+      modal.querySelector('.cancel-btn').addEventListener('click', () => {
+        modal.remove();
+      });
+      
+      // Close on backdrop click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+      
+    } catch (error) {
+      console.error('Error loading customers:', error);
+      alert('Error al cargar clientes');
+    }
+  }
+
+  async doProcessSale(metodoPago, clienteId) {
     try {
       const sale = {
         items: this.cart.map(item => ({
           producto_id: item.product.id,
           cantidad: item.quantity,
-          precio_unitario: item.product.precio
+          precio_unitario: item.finalPrice !== undefined ? item.finalPrice : item.product.precio
         })),
         metodo_pago: metodoPago,
-        cliente_id: null
+        cliente_id: clienteId
       };
 
-      await this.services.sale.create(sale);
-      alert('Venta procesada correctamente');
+      // Use the cuenta-corriente endpoint for cuenta corriente sales
+      if (metodoPago === 'cuenta') {
+        await this.services.sale.createCuentaCorriente(sale);
+      } else {
+        await this.services.sale.create(sale);
+      }
+      
+      const message = metodoPago === 'cuenta' 
+        ? 'Venta a cuenta corriente procesada correctamente'
+        : 'Venta procesada correctamente';
+      alert(message);
       this.clearCart();
       await this.loadProducts();
     } catch (error) {

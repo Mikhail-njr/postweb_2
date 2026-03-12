@@ -27,6 +27,10 @@ export class SaleService {
     return this.apiClient.post('/ventas', sale);
   }
 
+  async createCuentaCorriente(sale) {
+    return this.apiClient.post('/ventas/cuenta-corriente', sale);
+  }
+
   async cancel(id, reason) {
     return this.apiClient.post(`/ventas/${id}/cancelar`, { reason });
   }

@@ -1,0 +1,235 @@
+/* CSS Variables - Design Tokens */
+:root {
+  /* ============================================
+     DEFAULT THEME (Claro - Día)
+     ============================================ */
+  
+  /* Colors */
+  --color-primary: #007bff;
+  --color-primary-dark: #0056b3;
+  --color-primary-light: #e7f1ff;
+  --color-secondary: #6c757d;
+  --color-danger: #dc3545;
+  --color-success: #28a745;
+  --color-warning: #ffc107;
+  --color-info: #17a2b8;
+  
+  /* Background colors */
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #e9ecef;
+  --bg-white: #ffffff;
+  --bg-dark: #2c3e50;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  
+  /* Text colors */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --text-light: #ffffff;
+  --text-inverse: #333333;
+  
+  /* Border colors */
+  --border-color: #ddd;
+  --border-light: #eee;
+  --border-focus: #007bff;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 10px 40px rgba(0, 0, 0, 0.2);
+  
+  /* Component specific */
+  --header-bg: #2c3e50;
+  --header-text: #ffffff;
+  --table-header-bg: #f8f9fa;
+  --table-row-hover: #f8f9fa;
+  --modal-overlay: rgba(0, 0, 0, 0.5);
+  --card-bg: #ffffff;
+  
+  /* Button colors */
+  --btn-primary-bg: #007bff;
+  --btn-primary-text: #ffffff;
+  --btn-secondary-bg: #6c757d;
+  --btn-secondary-text: #ffffff;
+  --btn-danger-bg: #dc3545;
+  --btn-danger-text: #ffffff;
+  --btn-hover-overlay: rgba(255, 255, 255, 0.1);
+  
+  /* Form colors */
+  --input-bg: #ffffff;
+  --input-border: #ddd;
+  --input-text: #333333;
+  --input-placeholder: #999999;
+  --input-focus-border: #007bff;
+  --input-focus-shadow: rgba(0, 123, 255, 0.1);
+
+  /* ============================================
+     SHARED VARIABLES (No theme-dependent)
+     ============================================ */
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 15px;
+  --spacing-lg: 20px;
+  --spacing-xl: 30px;
+  
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-full: 50%;
+  
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-xxl: 24px;
+  
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  
+  /* Z-index */
+  --z-dropdown: 100;
+  --z-modal: 1000;
+  --z-tooltip: 1100;
+}
+
+/* ============================================
+   THEME: Tarde (Tonos Cálidos)
+   ============================================ */
+.theme-tarde {
+  /* Colors */
+  --color-primary: #f59e0b;
+  --color-primary-dark: #d97706;
+  --color-primary-light: #fef3c7;
+  --color-secondary: #78716c;
+  --color-danger: #ef4444;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-info: #06b6d4;
+  
+  /* Background colors */
+  --bg-primary: #fff7ed;
+  --bg-secondary: #ffedd5;
+  --bg-white: #ffffff;
+  --bg-dark: #78350f;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  
+  /* Text colors */
+  --text-primary: #451a03;
+  --text-secondary: #78350f;
+  --text-muted: #a16207;
+  --text-light: #ffffff;
+  --text-inverse: #ffffff;
+  
+  /* Border colors */
+  --border-color: #fed7aa;
+  --border-light: #ffedd5;
+  --border-focus: #f59e0b;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(120, 53, 15, 0.1);
+  --shadow-md: 0 2px 4px rgba(120, 53, 15, 0.1);
+  --shadow-lg: 0 4px 8px rgba(120, 53, 15, 0.15);
+  --shadow-xl: 0 10px 40px rgba(120, 53, 15, 0.2);
+  
+  /* Component specific */
+  --header-bg: #78350f;
+  --header-text: #ffffff;
+  --table-header-bg: #ffedd5;
+  --table-row-hover: #fff7ed;
+  --modal-overlay: rgba(120, 53, 15, 0.5);
+  --card-bg: #ffffff;
+  
+  /* Button colors */
+  --btn-primary-bg: #f59e0b;
+  --btn-primary-text: #ffffff;
+  --btn-secondary-bg: #78716c;
+  --btn-secondary-text: #ffffff;
+  --btn-danger-bg: #ef4444;
+  --btn-danger-text: #ffffff;
+  --btn-hover-overlay: rgba(255, 255, 255, 0.1);
+  
+  /* Form colors */
+  --input-bg: #ffffff;
+  --input-border: #fed7aa;
+  --input-text: #451a03;
+  --input-placeholder: #a16207;
+  --input-focus-border: #f59e0b;
+  --input-focus-shadow: rgba(245, 158, 11, 0.1);
+}
+
+/* ============================================
+   THEME: Noche (Oscuro)
+   ============================================ */
+.theme-noche {
+  /* Colors */
+  --color-primary: #60a5fa;
+  --color-primary-dark: #3b82f6;
+  --color-primary-light: #1e3a5f;
+  --color-secondary: #9ca3af;
+  --color-danger: #f87171;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-info: #22d3ee;
+  
+  /* Background colors */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-white: #1e293b;
+  --bg-dark: #020617;
+  --bg-card: #1e293b;
+  --bg-input: #1e293b;
+  
+  /* Text colors */
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-light: #f1f5f9;
+  --text-inverse: #0f172a;
+  
+  /* Border colors */
+  --border-color: #334155;
+  --border-light: #1e293b;
+  --border-focus: #60a5fa;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 10px 40px rgba(0, 0, 0, 0.5);
+  
+  /* Component specific */
+  --header-bg: #020617;
+  --header-text: #f1f5f9;
+  --table-header-bg: #1e293b;
+  --table-row-hover: #334155;
+  --modal-overlay: rgba(0, 0, 0, 0.7);
+  --card-bg: #1e293b;
+  
+  /* Button colors */
+  --btn-primary-bg: #3b82f6;
+  --btn-primary-text: #ffffff;
+  --btn-secondary-bg: #475569;
+  --btn-secondary-text: #ffffff;
+  --btn-danger-bg: #ef4444;
+  --btn-danger-text: #ffffff;
+  --btn-hover-overlay: rgba(255, 255, 255, 0.1);
+  
+  /* Form colors */
+  --input-bg: #1e293b;
+  --input-border: #334155;
+  --input-text: #f1f5f9;
+  --input-placeholder: #64748b;
+  --input-focus-border: #60a5fa;
+  --input-focus-shadow: rgba(96, 165, 250, 0.2);
+}

@@ -5,6 +5,14 @@
 export class Header {
   constructor() {
     this.currentPage = '';
+    this.themeService = null;
+  }
+
+  /**
+   * Set theme service reference
+   */
+  setThemeService(themeService) {
+    this.themeService = themeService;
   }
 
   /**
@@ -13,6 +21,8 @@ export class Header {
    */
   render(currentPage = '') {
     this.currentPage = currentPage;
+    const currentTheme = this.themeService?.getCurrentTheme() || 'claro';
+    
     return `
       <header class="dashboard-header">
         <h1>SIS-POST - Punto de Venta</h1>
@@ -23,8 +33,30 @@ export class Header {
           <a href="#" onclick="window.Router.navigate('/customers'); return false;" class="nav-link ${this.isActive('/customers') ? 'active' : ''}">Clientes</a>
           <a href="#" onclick="window.Router.navigate('/sales'); return false;" class="nav-link ${this.isActive('/sales') ? 'active' : ''}">Ventas</a>
           <a href="#" onclick="window.Router.navigate('/caja'); return false;" class="nav-link ${this.isActive('/caja') ? 'active' : ''}">Caja</a>
+          <a href="#" onclick="window.Router.navigate('/promotions'); return false;" class="nav-link ${this.isActive('/promotions') ? 'active' : ''}">Promociones</a>
         </nav>
         <div class="user-info">
+          <!-- Theme Selector -->
+          <div class="theme-selector" id="theme-selector">
+            <button class="theme-btn theme-claro ${currentTheme === 'claro' ? 'active' : ''}" 
+                    data-theme="claro" 
+                    title="Tema Claro (Día)"
+                    onclick="window.handleThemeChange('claro')">
+              ☀️
+            </button>
+            <button class="theme-btn theme-tarde ${currentTheme === 'tarde' ? 'active' : ''}" 
+                    data-theme="tarde" 
+                    title="Tema Tarde"
+                    onclick="window.handleThemeChange('tarde')">
+              🌅
+            </button>
+            <button class="theme-btn theme-noche ${currentTheme === 'noche' ? 'active' : ''}" 
+                    data-theme="noche" 
+                    title="Tema Oscuro (Noche)"
+                    onclick="window.handleThemeChange('noche')">
+              🌙
+            </button>
+          </div>
           <span id="user-name"></span>
           <button id="logout-btn" class="btn btn-secondary">Cerrar Sesión</button>
         </div>
@@ -62,6 +94,20 @@ export class Header {
       const user = JSON.parse(sessionStorage.getItem('user') || '{}');
       userName.textContent = user.nombre || 'Usuario';
     }
+  }
+
+  /**
+   * Update theme buttons active state
+   */
+  updateThemeButtons(currentTheme) {
+    const buttons = document.querySelectorAll('.theme-btn');
+    buttons.forEach(btn => {
+      if (btn.dataset.theme === currentTheme) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
   }
 }
 

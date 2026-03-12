@@ -6,18 +6,24 @@ import { Router } from './core/Router.js';
 import { Store } from './core/Store.js';
 import { ApiClient } from './core/ApiClient.js';
 import { EventBus } from './core/EventBus.js';
-import { AuthService, ProductService, SaleService, CustomerService, DebtService, CajaService } from './services/index.js';
+import { AuthService, ProductService, SaleService, CustomerService, DebtService, CajaService, promotionService } from './services/index.js';
+import { ThemeService, themeService } from './services/ThemeService.js';
 import { DashboardPage } from './pages/Dashboard/DashboardPage.js';
 import { ProductsPage } from './pages/Products/ProductsPage.js';
 import { CustomersPage } from './pages/Customers/CustomersPage.js';
 import { SalesPage } from './pages/Sales/SalesPage.js';
 import { CajaPage } from './pages/Caja/CajaPage.js';
 import { LotesPage } from './pages/Lotes/LotesPage.js';
+import { PromotionsPage } from './pages/Promotions/PromotionsPage.js';
 
 // Initialize core modules
 window.EventBus = new EventBus();
 window.Store = new Store();
 window.ApiClient = new ApiClient('/api');
+
+// Initialize Theme Service (before other services)
+window.ThemeService = ThemeService;
+window.themeService = themeService;
 
 // Initialize services
 window.Services = {
@@ -26,7 +32,25 @@ window.Services = {
   sale: new SaleService(window.ApiClient),
   customer: new CustomerService(window.ApiClient),
   debt: new DebtService(window.ApiClient),
-  caja: new CajaService(window.ApiClient)
+  caja: new CajaService(window.ApiClient),
+  promotion: promotionService
+};
+
+// Global function to handle theme changes (called from Header)
+window.handleThemeChange = function(themeName) {
+  window.themeService.applyTheme(themeName);
+  // Update header buttons if header exists
+  const header = document.querySelector('.dashboard-header');
+  if (header) {
+    const buttons = header.querySelectorAll('.theme-btn');
+    buttons.forEach(btn => {
+      if (btn.dataset.theme === themeName) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
 };
 
 // Initialize router
@@ -86,6 +110,13 @@ window.Router.define({
       return;
     }
     renderLotes();
+  },
+  '/promotions': () => {
+    if (!window.Services.auth.isAuthenticated()) {
+      window.Router.navigate('/login');
+      return;
+    }
+    renderPromotions();
   },
   '/debts': () => {
     if (!window.Services.auth.isAuthenticated()) {
@@ -172,6 +203,12 @@ function renderLotes() {
   page.render();
 }
 
+function renderPromotions() {
+  const app = document.getElementById('app');
+  const page = new PromotionsPage(app);
+  page.init();
+}
+
 function renderDebts() {
   const app = document.getElementById('app');
   app.innerHTML = `
@@ -188,6 +225,10 @@ function renderDebts() {
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
   console.log('SIS-POST Frontend initialized');
+  
+  // Initialize theme from localStorage or default
+  const currentTheme = window.themeService.init();
+  console.log(`Theme loaded: ${currentTheme}`);
   
   // Start router
   window.Router.init();

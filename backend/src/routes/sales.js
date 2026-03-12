@@ -209,7 +209,121 @@ router.post('/', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'No hay productos en la venta' });
   }
   
-  const total = items.reduce((sum, item) => sum + (item.cantidad * item.precio_unitario), 0);
+  // Get active promotions
+  const now = new Date().toISOString();
+  const activePromotions = await dbAll(`
+    SELECT * FROM promociones 
+    WHERE activa = 1 
+    AND (fecha_inicio IS NULL OR fecha_inicio <= ?)
+    AND (fecha_fin IS NULL OR fecha_fin >= ?)
+  `, [now, now]);
+  
+  // Get products for each promotion
+  for (const promo of activePromotions) {
+    const prods = await dbAll(`
+      SELECT p.id, p.precio, pp.cantidad as cantidad_promocion
+      FROM productos p
+      JOIN promociones_productos pp ON p.id = pp.producto_id
+      WHERE pp.promocion_id = ?
+    `, [promo.id]);
+    promo.productos = prods;
+  }
+  
+  // Calculate discounts
+  let total = 0;
+  let descuentoTotal = 0;
+  const itemsConDescuento = [];
+  const appliedPromotions = [];
+  
+  // Track product quantities for combo checking
+  const productQuantities = {};
+  for (const item of items) {
+    if (!productQuantities[item.producto_id]) {
+      productQuantities[item.producto_id] = 0;
+    }
+    productQuantities[item.producto_id] += item.cantidad;
+  }
+  
+  // First apply individual promotions
+  for (const item of items) {
+    let precioUnitario = item.precio_unitario;
+    let descuentoItem = 0;
+    let promocionAplicada = null;
+    
+    // Check for individual promotions
+    const individualPromos = activePromotions.filter(p => 
+      p.tipo === 'individual' && 
+      p.productos && 
+      p.productos.some(pp => pp.id === item.producto_id)
+    );
+    
+    // Apply the highest discount
+    if (individualPromos.length > 0) {
+      const bestPromo = individualPromos.reduce((best, p) => 
+        p.descuento > best.descuento ? p : best
+      );
+      
+      descuentoItem = (precioUnitario * bestPromo.descuento) / 100;
+      precioUnitario = precioUnitario - descuentoItem;
+      promocionAplicada = { id: bestPromo.id, nombre: bestPromo.nombre, descuento: bestPromo.descuento };
+      appliedPromotions.push(promocionAplicada);
+    }
+    
+    itemsConDescuento.push({
+      ...item,
+      precio_unitario: item.precio_unitario,
+      descuento: descuentoItem,
+      precio_final: precioUnitario,
+      promocion: promocionAplicada
+    });
+    
+    total += item.cantidad * item.precio_unitario;
+    descuentoTotal += item.cantidad * descuentoItem;
+  }
+  
+  // Then check for combo promotions
+  const comboPromos = activePromotions.filter(p => p.tipo === 'combo');
+  
+  for (const combo of comboPromos) {
+    if (!combo.productos || combo.productos.length < 2) continue;
+    
+    // Check if all products in combo are in the sale
+    const comboProductIds = combo.productos.map(p => p.id);
+    const hasAllProducts = comboProductIds.every(id => productQuantities[id] && productQuantities[id] > 0);
+    
+    if (hasAllProducts) {
+      // Calculate combo discount
+      // Get the minimum quantity among combo products (this determines how many complete combos)
+      const minComboQty = Math.min(...comboProductIds.map(id => productQuantities[id] || 0));
+      
+      if (minComboQty > 0) {
+        // Calculate original price of combo products
+        let comboOriginalPrice = 0;
+        for (const item of items) {
+          if (comboProductIds.includes(item.producto_id)) {
+            comboOriginalPrice += item.cantidad * item.precio_unitario;
+          }
+        }
+        
+        // Apply combo discount only to the quantity that forms complete combos
+        const comboDiscount = (comboOriginalPrice * combo.descuento) / 100;
+        
+        // Adjust discount proportionally
+        const proportionalDiscount = (comboDiscount / comboOriginalPrice) * (minComboQty * comboOriginalPrice / items.reduce((s, i) => s + i.cantidad * i.precio_unitario, 0));
+        descuentoTotal += proportionalDiscount;
+        
+        appliedPromotions.push({
+          id: combo.id,
+          nombre: combo.nombre,
+          descuento: combo.descuento,
+          tipo: 'combo',
+          productos: comboProductIds
+        });
+      }
+    }
+  }
+  
+  const totalFinal = total - descuentoTotal;
   
   // Generate invoice number
   const lastSale = await dbGet('SELECT numero_factura FROM ventas ORDER BY id DESC LIMIT 1');
@@ -225,16 +339,19 @@ router.post('/', asyncHandler(async (req, res) => {
   const result = await dbRun(`
     INSERT INTO ventas (numero_factura, total, metodo_pago, cliente_id)
     VALUES (?, ?, ?, ?)
-  `, [newNumero, total, metodo_pago || 'efectivo', cliente_id || null]);
+  `, [newNumero, totalFinal, metodo_pago || 'efectivo', cliente_id || null]);
   
   const ventaId = result.lastID;
   
   for (const item of items) {
-    const subtotal = item.cantidad * item.precio_unitario;
+    // Find the corresponding item with discount info
+    const itemInfo = itemsConDescuento.find(i => i.producto_id === item.producto_id) || item;
+    const subtotal = item.cantidad * (itemInfo.precio_final || item.precio_unitario);
+    
     await dbRun(`
       INSERT INTO venta_items (venta_id, producto_id, cantidad, precio_unitario, subtotal)
       VALUES (?, ?, ?, ?, ?)
-    `, [ventaId, item.producto_id, item.cantidad, item.precio_unitario, subtotal]);
+    `, [ventaId, item.producto_id, item.cantidad, itemInfo.precio_final || item.precio_unitario, subtotal]);
     
     // Update stock using FIFO lot system
     let cantidadRestante = item.cantidad;
@@ -280,9 +397,12 @@ router.post('/', asyncHandler(async (req, res) => {
   
   res.status(201).json({ 
     id: ventaId, 
-    total, 
+    total: totalFinal, 
+    subtotal: total,
+    descuento: descuentoTotal,
     metodo_pago: metodo_pago || 'efectivo',
-    items: items.length
+    items: items.length,
+    promociones_aplicadas: appliedPromotions
   });
 }));
 
@@ -301,8 +421,8 @@ router.post('/cuenta-corriente', asyncHandler(async (req, res) => {
   const total = items.reduce((sum, item) => sum + (item.cantidad * item.precio_unitario), 0);
   
   const debtResult = await dbRun(`
-    INSERT INTO deudas (cliente_id, fecha, monto_original, monto_pendiente, pagado, observaciones)
-    VALUES (?, datetime('now'), ?, ?, 0, ?)
+    INSERT INTO deudas (cliente_id, monto_original, monto_pendiente, estado, observaciones)
+    VALUES (?, ?, ?, 'pendiente', ?)
   `, [cliente_id, total, total, observaciones || 'Venta a cuenta corriente']);
   
   const deudaId = debtResult.lastID;

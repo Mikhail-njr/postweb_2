@@ -172,11 +172,14 @@ router.post('/:id/deudas/:deudaId/producto/:productoId/pagar', asyncHandler(asyn
 
 // POST /api/customers - Create new customer
 router.post('/', asyncHandler(async (req, res) => {
-  const { nombre, dni, telefono, email, direccion, observaciones } = req.body;
+  const { nombre, telefono, direccion, documento, email, observaciones } = req.body;
+  
+  // Use documento as dni if provided
+  const dni = documento || null;
   
   const result = await dbRun(`
-    INSERT INTO clientes (nombre, dni, telefono, email, direccion, observaciones, fecha_alta)
-    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+    INSERT INTO clientes (nombre, dni, telefono, email, direccion, observaciones, fecha_alta, activo)
+    VALUES (?, ?, ?, ?, ?, ?, datetime('now'), 1)
   `, [nombre, dni, telefono, email, direccion, observaciones]);
   
   const customer = await dbGet('SELECT * FROM clientes WHERE id = ?', [result.lastID]);
@@ -186,13 +189,16 @@ router.post('/', asyncHandler(async (req, res) => {
 // PUT /api/customers/:id - Update customer
 router.put('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { nombre, dni, telefono, email, direccion, observaciones } = req.body;
+  const { nombre, telefono, direccion, documento, email, observaciones, activo } = req.body;
+  
+  // Use documento as dni if provided
+  const dni = documento || null;
   
   await dbRun(`
     UPDATE clientes 
-    SET nombre = ?, dni = ?, telefono = ?, email = ?, direccion = ?, observaciones = ?
+    SET nombre = ?, dni = ?, telefono = ?, email = ?, direccion = ?, observaciones = ?, activo = ?
     WHERE id = ?
-  `, [nombre, dni, telefono, email, direccion, observaciones, id]);
+  `, [nombre, dni, telefono, email, direccion, observaciones, activo, id]);
   
   const customer = await dbGet('SELECT * FROM clientes WHERE id = ?', [id]);
   res.json(customer);
@@ -204,7 +210,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   
   const activeDebts = await dbGet(`
     SELECT COUNT(*) as count FROM deudas 
-    WHERE cliente_id = ? AND pagado = 0
+    WHERE cliente_id = ? AND estado = 'pendiente'
   `, [id]);
   
   if (activeDebts.count > 0) {
